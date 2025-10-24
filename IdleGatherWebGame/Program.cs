@@ -15,6 +15,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 // Browser storage (localStorage wrapper)
 builder.Services.AddScoped<IBrowserStorage, BrowserStorage>();
 
-builder.Services.AddScoped<GameState>();                       // <-- must be Scoped
+builder.Services.AddScoped<GameState>(); // <-- must be Scoped
 
 await builder.Build().RunAsync();

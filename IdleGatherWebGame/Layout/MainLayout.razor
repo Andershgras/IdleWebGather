@@ -197,7 +197,8 @@
                         </div>
                     }
                 </div>
-
+                <!-- Casino Menu -->
+                <button class="menu-item @(leftTab == "Casino" ? "active" : null)" @onclick='() => SetLeft("Casino")'>Casino</button>
                 <!-- Settings Menu -->
                 <button class="menu-item @(leftTab == "Settings" ? "active" : null)" @onclick='() => SetLeft("Settings")'>Settings</button>
             </nav>
@@ -295,11 +296,26 @@
                     </div>
                 }
             }
-            else
+            else if (leftTab == "Casino")
             {
-                <h2>Welcome</h2>
-                <p>Select a menu from the left.</p>
-            }
+                <div class="casino-tab">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button class="@BtnClass(CasinoGame.CoinFlip)" @onclick="() => SelectGame(CasinoGame.CoinFlip)">Coin Flip</button>
+                        <button class="@BtnClass(CasinoGame.Roulette)" @onclick="() => SelectGame(CasinoGame.Roulette)">Roulette</button>
+                        <button class="@BtnClass(CasinoGame.Blackjack)" @onclick="() => SelectGame(CasinoGame.Blackjack)">Blackjack</button>
+                    </div>
+
+                    <div class="mt-2">
+                        @(_selectedCasinoGame switch
+                        {
+                            CasinoGame.CoinFlip => CoinFlipView,
+                            CasinoGame.Roulette => RouletteView,
+                            CasinoGame.Blackjack => BlackjackView,
+                            _ => DefaultView
+                        })
+                </div>
+            </div>
+                        }
         </section>
 
         <!-- Right column -->
@@ -820,4 +836,33 @@
         return ok;
     }
     bool _showLvl;
+    // CASINO AREA
+    private enum CasinoGame { None, CoinFlip, Roulette, Blackjack }
+    private CasinoGame _selectedCasinoGame = CasinoGame.None;
+
+    private void SelectGame(CasinoGame game) => _selectedCasinoGame = game;
+
+    private string BtnClass(CasinoGame game)
+        => $"btn {(_selectedCasinoGame == game ? "btn-primary" : "btn-outline-primary")}";
+
+    // Inline "components" (no extra files needed)
+    private RenderFragment DefaultView => @<p>Select a game above.</p>;
+
+    private RenderFragment CoinFlipView => @<div>
+        <h4>Coin Flip</h4>
+        <p>Heads or tails? (Coming soon)</p>
+    @* Put Coin Flip UI/logic here *@
+    </div>;
+
+    private RenderFragment RouletteView => @<div>
+        <h4>Roulette</h4>
+        <p>Place your bets… (Coming soon)</p>
+    @* Put Roulette UI/logic here *@
+    </div>;
+
+    private RenderFragment BlackjackView => @<div>
+        <h4>Blackjack</h4>
+        <p>Try to hit 21. (Coming soon)</p>
+    @* Put Blackjack UI/logic here *@
+    </div>;
 }

@@ -15,9 +15,11 @@ namespace IdleGatherWebGame.Services
         public int OverallLevel { get; private set; } = 1;
         /** XP stored as "into this level" (not lifetime). */
         public double OverallXp { get; private set; } = 0;
+        public ISkillService Skills { get; }
 
         public double OverallXpNeededThisLevel => RequiredOverallXp(OverallLevel);
         public double OverallXpToNextLevel => Math.Max(0, OverallXpNeededThisLevel - OverallXp);
+
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -101,10 +103,11 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
         public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
 
-        public Skill Woodcutting { get; private set; } = new("woodcutting", "Woodcutting");
-        public Skill Crafting { get; private set; } = new("crafting", "Crafting");
-        public Skill Mining { get; private set; } = new("mining", "Mining");
-        public Skill Smelting { get; private set; } = new("smelting", "Smelting");
+        public Skill Woodcutting => Skills.Get(SkillIds.Woodcutting);
+        public Skill Crafting => Skills.Get(SkillIds.Crafting);
+        public Skill Mining => Skills.Get(SkillIds.Mining);
+        public Skill Smelting => Skills.Get(SkillIds.Smelting);
+        public Skill Casino => Skills.Get(SkillIds.Casino);
 
         public bool JobRunning => _job is not null;
         public double Progress01 => _job?.Progress01 ?? 0;
@@ -141,11 +144,34 @@ namespace IdleGatherWebGame.Services
         public GameState(IBrowserStorage storage)
         {
             _storage = storage;
+
+            // --- Initialize Skills (new) ---
+            Skills = new SkillService();
+            Skills.EnsureKnownSkills(new[]
+            {
+        (SkillIds.Woodcutting, "Woodcutting"),
+        (SkillIds.Crafting,    "Crafting"),
+        (SkillIds.Mining,      "Mining"),
+        (SkillIds.Smelting,    "Smelting"),
+        (SkillIds.Casino,      "Casino"),
+    });
+
             InitDefaults();
             _timer = new Timer(_ => Tick(TimeSpan.FromMilliseconds(TickMs)), null, 250, TickMs);
         }
         public GameState() // fallback if DI ever calls parameterless
         {
+            // --- Initialize Skills (new) ---
+            Skills = new SkillService();
+            Skills.EnsureKnownSkills(new[]
+            {
+        (SkillIds.Woodcutting, "Woodcutting"),
+        (SkillIds.Crafting,    "Crafting"),
+        (SkillIds.Mining,      "Mining"),
+        (SkillIds.Smelting,    "Smelting"),
+        (SkillIds.Casino,      "Casino"),
+    });
+
             InitDefaults();
             _timer = new Timer(_ => Tick(TimeSpan.FromMilliseconds(TickMs)), null, 250, TickMs);
         }
@@ -237,7 +263,12 @@ namespace IdleGatherWebGame.Services
             => _resources.TryGetValue(id, out var res) ? res.Amount : 0;
 
         public bool TryGetSellPrice(string id, out int price)
-            => _sellPrice.TryGetValue(id, out price);
+        {
+            price = 0;
+            if (ItemRegistry.TryGet(id, out var meta) && meta.SellPricePerUnit is int p)
+            { price = p; return true; }
+            return false;
+        }
 
         public int Sell(string id, int qty)
         {
@@ -403,46 +434,12 @@ namespace IdleGatherWebGame.Services
             return "units";
         }
 
-        public static string IdToNice(string id) => id switch
+        public static string IdToNice(string id)
         {
-            // base
-            "wood" => "Logs",
-            "stone" => "Stone",
-            "keys" => "Keys",
-            "coins" => "Coins",
-            // logs
-            "log_t1" => "Log (T1)",
-            "log_t2" => "Log (T2)",
-            "log_t3" => "Log (T3)",
-            "log_t4" => "Log (T4)",
-            "log_t5" => "Log (T5)",
-            "log_t6" => "Log (T6)",
-            "log_t7" => "Log (T7)",
-            // planks
-            "plank_t1" => "Plank (T1)",
-            "plank_t2" => "Plank (T2)",
-            "plank_t3" => "Plank (T3)",
-            "plank_t4" => "Plank (T4)",
-            "plank_t5" => "Plank (T5)",
-            "plank_t6" => "Plank (T6)",
-            "plank_t7" => "Plank (T7)",
-            // ores
-            "copper_ore" => "Copper Ore",
-            "tin_ore" => "Tin Ore",
-            "iron_ore" => "Iron Ore",
-            "silver_ore" => "Silver Ore",
-            "gold_ore" => "Gold Ore",
-            "mithril_ore" => "Mithril Ore",
-            "adamant_ore" => "Adamantite Ore",
-            // bars
-            "bronze_bar" => "Bronze Bar",
-            "iron_bar" => "Iron Bar",
-            "silver_bar" => "Silver Bar",
-            "gold_bar" => "Gold Bar",
-            "mith_bar" => "Mithril Bar",
-            "adam_bar" => "Adamant Bar",
-            _ => id.Replace('_', ' ')
-        };
+            return ItemRegistry.TryGet(id, out var meta)
+                ? meta.Name
+                : id.Replace('_', ' ');
+        }
 
         private void PushToast(string icon, string text, double seconds = 3)
         {
@@ -452,57 +449,25 @@ namespace IdleGatherWebGame.Services
         // ---------- Content / data ----------
         private void InitDefaults()
         {
-            // All resources in one shot (don’t overwrite later)
-            _resources = new Dictionary<string, Resource>
-            {
-                // base
-                ["wood"] = new Resource("wood", "Wood", "🌲", 0), // generic wood (Legacy)
-                ["stone"] = new Resource("stone", "Stone", "🪨", 0),
-                ["keys"] = new Resource("keys", "Keys", "🗝️", 0),
-                ["coins"] = new Resource("coins", "Coins", "🪙", 0),
-                // logs
-                ["log_t1"] = new Resource("log_t1", "Log (T1)", "🌲", 0),
-                ["log_t2"] = new Resource("log_t2", "Log (T2)", "🌲", 0),
-                ["log_t3"] = new Resource("log_t3", "Log (T3)", "🌲", 0),
-                ["log_t4"] = new Resource("log_t4", "Log (T4)", "🌲", 0),
-                ["log_t5"] = new Resource("log_t5", "Log (T5)", "🌲", 0),
-                ["log_t6"] = new Resource("log_t6", "Log (T6)", "🌲", 0),
-                ["log_t7"] = new Resource("log_t7", "Log (T7)", "🌲", 0),
-                // planks
-                ["plank_t1"] = new Resource("plank_t1", "Plank (T1)", "🪵", 0),
-                ["plank_t2"] = new Resource("plank_t2", "Plank (T2)", "🪵", 0),
-                ["plank_t3"] = new Resource("plank_t3", "Plank (T3)", "🪵", 0),
-                ["plank_t4"] = new Resource("plank_t4", "Plank (T4)", "🪵", 0),
-                ["plank_t5"] = new Resource("plank_t5", "Plank (T5)", "🪵", 0),
-                ["plank_t6"] = new Resource("plank_t6", "Plank (T6)", "🪵", 0),
-                ["plank_t7"] = new Resource("plank_t7", "Plank (T7)", "🪵", 0),
-                // ores
-                ["copper_ore"] = new Resource("copper_ore", "Copper Ore", "🪨", 0),
-                ["tin_ore"] = new Resource("tin_ore", "Tin Ore", "🪨", 0),
-                ["iron_ore"] = new Resource("iron_ore", "Iron Ore", "🪨", 0),
-                ["silver_ore"] = new Resource("silver_ore", "Silver Ore", "🪨", 0),
-                ["gold_ore"] = new Resource("gold_ore", "Gold Ore", "🪨", 0),
-                ["mithril_ore"] = new Resource("mithril_ore", "Mithril Ore", "🪨", 0),
-                ["adamant_ore"] = new Resource("adamant_ore", "Adamantite Ore", "🪨", 0),
-                // bars
-                ["bronze_bar"] = new Resource("bronze_bar", "Bronze Bar", "🔩", 0),
-                ["iron_bar"] = new Resource("iron_bar", "Iron Bar", "🔩", 0),
-                ["silver_bar"] = new Resource("silver_bar", "Silver Bar", "🔩", 0),
-                ["gold_bar"] = new Resource("gold_bar", "Gold Bar", "🔩", 0),
-                ["mith_bar"] = new Resource("mith_bar", "Mithril Bar", "🔩", 0),
-                ["adam_bar"] = new Resource("adam_bar", "Adamant Bar", "🔩", 0),
-            };
-            // Woodcutting nodes (7 tiers as before)
-            _trees = new List<TreeNode>
-            {
-                new TreeNode{ Id="tree_1", Name="Shrub",       Icon="🌿", RequiredLevel=1,  MinLogs=1, MaxLogs=2, XpPerCycle=6,  Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_2", Name="Oak",         Icon="🌳", RequiredLevel=5,  MinLogs=1, MaxLogs=2, XpPerCycle=8,  Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_3", Name="Willow",      Icon="🌳", RequiredLevel=10, MinLogs=1, MaxLogs=2, XpPerCycle=10, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_4", Name="Maple",       Icon="🌳", RequiredLevel=15, MinLogs=1, MaxLogs=2, XpPerCycle=12, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_5", Name="Yew",         Icon="🌳", RequiredLevel=20, MinLogs=1, MaxLogs=2, XpPerCycle=14, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_6", Name="Magic",       Icon="🌳", RequiredLevel=30, MinLogs=1, MaxLogs=2, XpPerCycle=18, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="tree_7", Name="Elder",       Icon="🌳", RequiredLevel=40, MinLogs=1, MaxLogs=2, XpPerCycle=22, Duration=TimeSpan.FromSeconds(6)},
-            };
+            // Build resources from ItemRegistry (names/icons centralized)
+            _resources = ItemRegistry.All.ToDictionary(
+                m => m.Id,
+                m => new Resource(m.Id, m.Name, m.Icon, 0)
+            );
+            // Woodcutting: build trees from TreeRegistry
+            _trees = TreeRegistry.All
+                .Select(t => new TreeNode
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Icon = t.Icon,
+                    RequiredLevel = t.RequiredLevel,
+                    XpPerCycle = t.XpPerCycle,
+                    MinLogs = t.MinLogs,
+                    MaxLogs = t.MaxLogs,
+                    Duration = TimeSpan.FromSeconds(t.DurationSeconds)
+                })
+                .ToList();
 
             // Mining (ore) nodes (reuse TreeNode)
             _ores = new List<TreeNode>
@@ -572,34 +537,6 @@ namespace IdleGatherWebGame.Services
                 new CraftRecipe{ Id="adam_bar",   Name="Adamant Bar",Icon="🔩", RequiredLevel=40, Duration=TimeSpan.FromSeconds(4),
                     Inputs=new(){ new("adamant_ore",3) }, Outputs=new(){ new("adam_bar",1) }, XpPerCycle=34 },
             };
-
-            // simple sell prices
-            _sellPrice = new Dictionary<string, int>
-            {
-                ["wood"] = 2,
-                ["plank_t1"] = 5,
-                ["plank_t2"] = 7,
-                ["plank_t3"] = 10,
-                ["plank_t4"] = 14,
-                ["plank_t5"] = 18,
-                ["plank_t6"] = 22,
-                ["plank_t7"] = 30,
-
-                ["copper_ore"] = 3,
-                ["tin_ore"] = 3,
-                ["iron_ore"] = 4,
-                ["silver_ore"] = 6,
-                ["gold_ore"] = 8,
-                ["mithril_ore"] = 10,
-                ["adamant_ore"] = 12,
-
-                ["bronze_bar"] = 10,
-                ["iron_bar"] = 14,
-                ["silver_bar"] = 20,
-                ["gold_bar"] = 30,
-                ["mith_bar"] = 40,
-                ["adam_bar"] = 55,
-            };
         }
 
         // ---------- Fields ----------
@@ -610,7 +547,6 @@ namespace IdleGatherWebGame.Services
         private List<TreeNode> _ores = new();
         private List<CraftRecipe> _recipes = new();
         private List<CraftRecipe> _smelt = new();
-        private Dictionary<string, int> _sellPrice = new();
         private Dictionary<string, string> _nodeOutput = new();
         private Dictionary<string, string> _treeOutput = new();
 
@@ -626,13 +562,7 @@ namespace IdleGatherWebGame.Services
 
                 // resources and skills
                 Resources = Resources.ToDictionary(kv => kv.Key, kv => kv.Value.Amount),
-                Skills = new Dictionary<string, PlayerData.SkillData>
-                {
-                    ["woodcutting"] = new() { Level = Woodcutting.Level, Xp = Woodcutting.Xp },
-                    ["crafting"] = new() { Level = Crafting.Level, Xp = Crafting.Xp },
-                    ["mining"] = new() { Level = Mining.Level, Xp = Mining.Xp },
-                    ["smelting"] = new() { Level = Smelting.Level, Xp = Smelting.Xp },
-                },
+                Skills = this.Skills.ToSaveDictionary(),
 
                 // NEW: overall progression (persist runtime values)
                 OverallLevel = this.OverallLevel,
@@ -676,26 +606,16 @@ namespace IdleGatherWebGame.Services
             // --- Overall progression ---
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
-
-            // --- Skills: (re)instantiate if present in save, then set values ---
-            if (data.Skills.TryGetValue("woodcutting", out var wc)) Woodcutting = new("woodcutting", "Woodcutting");
-            if (data.Skills.TryGetValue("crafting", out var cr)) Crafting = new("crafting", "Crafting");
-            if (data.Skills.TryGetValue("mining", out var mi)) Mining = new("mining", "Mining");
-            if (data.Skills.TryGetValue("smelting", out var sm)) Smelting = new("smelting", "Smelting");
-
-            void SetSkill(Skill s, PlayerData.SkillData? sd)
+            // Ensure the known skills exist, then restore saved values
+            Skills.EnsureKnownSkills(new[]
             {
-                if (sd is null) return;
-                // naive restore: add XP to reach saved XP & level
-                s.AddXp(sd.Xp);
-                while (s.Level < sd.Level)
-                    s.AddXp(s.XpForNextLevel - s.Xp + 0.0001);
-            }
-
-            SetSkill(Woodcutting, wc);
-            SetSkill(Crafting, cr);
-            SetSkill(Mining, mi);
-            SetSkill(Smelting, sm);
+                (SkillIds.Woodcutting, "Woodcutting"),
+                (SkillIds.Crafting,    "Crafting"),
+                (SkillIds.Mining,      "Mining"),
+                (SkillIds.Smelting,    "Smelting"),
+                (SkillIds.Casino,      "Casino"),
+            });
+            Skills.LoadFromDictionary(data.Skills);
 
             // --- Active job (rebuild) ---
             _job = null;
@@ -815,7 +735,6 @@ namespace IdleGatherWebGame.Services
             var json = JsonSerializer.Serialize(data, _json);
             await _storage.SetAsync(SaveKey, json);
         }
-
         public async Task ClearLocalAsync()
         {
             if (_storage is null) return;
@@ -839,7 +758,6 @@ namespace IdleGatherWebGame.Services
             }
             OnChange?.Invoke();
         }
-
         public static double RequiredOverallXp(int level)
         {
             if (level < 1) level = 1;
