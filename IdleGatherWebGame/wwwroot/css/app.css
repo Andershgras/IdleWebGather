@@ -801,6 +801,121 @@ code {
     background: var(--accent);
     border-radius: 999px;
 }
+:root {
+    --panel: #141824;
+    --panel-2: #0f1320;
+    --ring: #2e3346;
+    --text: #dfe6ff;
+    --muted: #9aa4c3;
+    --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+
+.inv-section {
+    margin-bottom: 24px;
+}
+
+.inv-header {
+    font-weight: 700;
+    letter-spacing: .2px;
+    color: var(--text);
+    opacity: .9;
+    margin: 8px 0 12px;
+}
+
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 12px;
+}
+
+.inv-card {
+    position: relative;
+    aspect-ratio: 1/1;
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    box-shadow: var(--shadow);
+    border: 1px solid var(--ring);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .08s ease, border-color .12s ease, box-shadow .12s ease;
+    outline: none;
+}
+
+    .inv-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .inv-card:focus-visible {
+        box-shadow: 0 0 0 3px rgba(120,180,255,.35);
+    }
+
+    .inv-card img {
+        width: 64px;
+        height: 64px;
+        max-width: 70%;
+        object-fit: contain;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+
+.inv-count {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 2px 6px;
+    font-weight: 800;
+    font-size: .85rem;
+    color: #0b0f1a;
+    background: rgba(255,255,255,.9);
+    border-radius: 999px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+
+/* Subtle rarity glow/border like MilkyWay */
+.rarity-common {
+    border-color: #2f364a;
+}
+
+.rarity-uncommon {
+    border-color: #2d6040;
+    box-shadow: 0 0 0 1px #2d6040 inset, var(--shadow);
+}
+
+.rarity-rare {
+    border-color: #264e8a;
+    box-shadow: 0 0 0 1px #264e8a inset, var(--shadow);
+}
+
+.rarity-epic {
+    border-color: #5b2f7e;
+    box-shadow: 0 0 0 1px #5b2f7e inset, var(--shadow);
+}
+
+.rarity-legendary {
+    border-color: #7a5a1b;
+    box-shadow: 0 0 0 1px #7a5a1b inset, var(--shadow);
+}
+
+/* When a group is empty you could hide it via razor, but style just in case */
+.inv-empty {
+    opacity: .6;
+    color: var(--muted);
+}
+
+/* Temporarily*/
+.right-panel {
+    display: block; /* ensure it's not display:none */
+    min-width: 280px;
+    padding: 12px;
+}
+
+.layout-root {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px; /* left | center | right */
+    gap: 0;
+}
+
 
 
 

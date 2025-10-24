@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
-@using IdleGatherWebGame.Models
 @inject IdleGatherWebGame.Services.GameState GS
+@using IdleGatherWebGame.Models
+@using IdleGatherWebGame.Components.Inventory
 @implements IDisposable
 
 <div class="app">
@@ -302,78 +303,9 @@
             }
         </section>
 
-        <!-- Right column -->
-        <aside class="right card">
-            <h3>Inventory</h3>
-            @{
-                var groups = GetInventoryGroups();
-            }
-            @if (groups.Count == 0)
-            {
-                <p class="small">You haven’t obtained any items yet.</p>
-            }
-            else
-            {
-                foreach (var group in groups)
-                {
-                    <div class="inv-section">
-                        <h4 class="inv-title">@group.Category</h4>
-                        @foreach (var item in group.Items)
-                        {
-                            var id = item.Meta.Id;
-                            var amt = item.Amount;
-                            var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
-
-                            <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
-                                <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
-
-                                <div class="inv-tip inv-pop">
-                                    <div class="tip-name">@item.Meta.Name</div>
-                                    <div class="tip-cat">@item.Meta.Category</div>
-                                    <div class="tip-amt">Owned: @Fmt(amt)</div>
-                                    @if (hasPrice)
-                                    {
-                                        <div class="tip-amt">Sell Price: @unitPrice</div>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
-                        {
-                            var meta = _invMeta[selectedItemId];
-                            var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
-
-                            <div class="sell-panel card">
-                                <div class="sell-title">@Fmt(SelectedItemOwned) @meta.Name</div>
-
-                                <div class="sell-row">
-                                    <input class="input small" type="number" min="1" max="@MaxSellAll" @bind="sellAmount" @bind:event="oninput" />
-                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
-                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
-                                </div>
-
-                                @if (hasPrice)
-                                {
-                                    <div class="sell-row">
-                                        <button class="btn wide"
-                                                disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
-                                                @onclick="SellSelected">
-                                            Sell for @(sellAmount * p) Coins
-                                        </button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="sell-row">
-                                        <span class="small">This item cannot be sold.</span>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-            }
+        <!-- INVENTORY PANEL -->
+        <aside class="right-panel">
+            <InventoryGrid Items="@_inventoryVm" />
         </aside>
     </div>
 </div>
@@ -820,4 +752,68 @@
         return ok;
     }
     bool _showLvl;
+    
+    private List<InventoryItemVM> _inventoryVm = new();
+
+    protected override void OnParametersSet()
+    {
+        RebuildInventory();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            RebuildInventory();
+            StateHasChanged();
+        }
+    }
+
+    private void RebuildInventory()
+    {
+        var list = new List<InventoryItemVM>();
+
+        // ---------- CURRENCIES ----------
+        // If you store coins as a resource id like "coin" (adjust if your key differs)
+        var coins = (long)Math.Round(GS.GetResource("coin"));
+        if (coins > 0)
+        {
+            list.Add(new InventoryItemVM(
+                "coin", "Coins", "img/items/coin.png",
+                coins, ItemCategory.Currencies, ItemRarity.Common
+            ));
+        }
+
+        // ---------- RESOURCES ----------
+        foreach (var kv in GS.PlayerData.Resources)
+        {
+            var id = kv.Key;
+            var amt = (long)Math.Max(0, Math.Round(kv.Value));
+
+            // skip coin since we already added it as a currency
+            if (id.Equals("coin", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var name = IdToTitle(id);
+            var icon = $"img/items/{id}.png";
+
+            list.Add(new InventoryItemVM(
+                id, name, icon,
+                amt, ItemCategory.Resources, ItemRarity.Common
+            ));
+        }
+
+        _inventoryVm = list
+            .OrderByDescending(x => x.Category == ItemCategory.Currencies)
+            .ThenByDescending(x => x.Amount)
+            .ThenBy(x => x.Name)
+            .ToList();
+    }
+
+    private static string IdToTitle(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return "Item";
+        var s = id.Replace('_', ' ').Replace('-', ' ');
+        return char.ToUpper(s[0]) + s[1..];
+    }
 }

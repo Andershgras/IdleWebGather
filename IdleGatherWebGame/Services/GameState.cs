@@ -15,6 +15,7 @@ namespace IdleGatherWebGame.Services
         public int OverallLevel { get; private set; } = 1;
         /** XP stored as "into this level" (not lifetime). */
         public double OverallXp { get; private set; } = 0;
+        public PlayerData PlayerData { get; private set; } = new();
 
         public double OverallXpNeededThisLevel => RequiredOverallXp(OverallLevel);
         public double OverallXpToNextLevel => Math.Max(0, OverallXpNeededThisLevel - OverallXp);
@@ -847,5 +848,8 @@ namespace IdleGatherWebGame.Services
             // 100 + 50*(L-1)  → L1:100, L2:150, L3:200, ...
             return 100 + 50 * (level - 1);
         }
+        // Convenience helpers (optional)
+        public double GetResource(string id)
+            => PlayerData.Resources.TryGetValue(id, out var v) ? v : 0;
     }
 }
