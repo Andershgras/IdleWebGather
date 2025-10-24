@@ -6,7 +6,7 @@ namespace IdleGatherWebGame.Models
     public class PlayerData
     {
         public string Name { get; set; } = "";
-
+        public int SaveVersion { get; set; } = 0;
         // id -> amount
         public Dictionary<string, double> Resources { get; set; } = new();
 

@@ -19,7 +19,7 @@ namespace IdleGatherWebGame.Services
 
         public double OverallXpNeededThisLevel => RequiredOverallXp(OverallLevel);
         public double OverallXpToNextLevel => Math.Max(0, OverallXpNeededThisLevel - OverallXp);
-
+        private const int CurrentSaveVersion = 1;
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -559,7 +559,7 @@ namespace IdleGatherWebGame.Services
             var data = new PlayerData
             {
                 Name = PlayerName ?? "Player",
-
+                SaveVersion = CurrentSaveVersion,
                 // resources and skills
                 Resources = Resources.ToDictionary(kv => kv.Key, kv => kv.Value.Amount),
                 Skills = this.Skills.ToSaveDictionary(),
@@ -606,6 +606,8 @@ namespace IdleGatherWebGame.Services
             // --- Overall progression ---
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
+
+            MigrateIfNeeded(data);
             // Ensure the known skills exist, then restore saved values
             Skills.EnsureKnownSkills(new[]
             {
@@ -764,6 +766,27 @@ namespace IdleGatherWebGame.Services
             // Simple, tweakable curve:
             // 100 + 50*(L-1)  → L1:100, L2:150, L3:200, ...
             return 100 + 50 * (level - 1);
+        }
+        private void MigrateIfNeeded(PlayerData data)
+        {
+            if (data is null) return;
+
+            // v0 → v1
+            if (data.SaveVersion < 1)
+            {
+                // Ensure dictionaries exist
+                data.Resources ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                data.Skills ??= new Dictionary<string, PlayerData.SkillData>(StringComparer.OrdinalIgnoreCase);
+
+                // Example of safe ID rename (ONLY if you actually renamed IDs):
+                // if (data.Resources.Remove("wood", out var amt))
+                // {
+                //     if (data.Resources.ContainsKey("log_t1")) data.Resources["log_t1"] += amt;
+                //     else data.Resources["log_t1"] = amt;
+                // }
+
+                data.SaveVersion = 1; // mark migrated
+            }
         }
     }
 }
