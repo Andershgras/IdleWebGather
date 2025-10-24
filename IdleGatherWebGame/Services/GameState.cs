@@ -468,41 +468,19 @@ namespace IdleGatherWebGame.Services
                     Duration = TimeSpan.FromSeconds(t.DurationSeconds)
                 })
                 .ToList();
-
-            // Mining (ore) nodes (reuse TreeNode)
-            _ores = new List<TreeNode>
-            {
-                new TreeNode{ Id="ore_1", Name="Copper Vein", Icon="⛏️", RequiredLevel=1,  MinLogs=1, MaxLogs=3, XpPerCycle=6,  Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_2", Name="Tin Vein",    Icon="⛏️", RequiredLevel=3,  MinLogs=1, MaxLogs=3, XpPerCycle=7,  Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_3", Name="Iron Vein",   Icon="⛏️", RequiredLevel=8,  MinLogs=1, MaxLogs=2, XpPerCycle=10, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_4", Name="Silver Vein", Icon="⛏️", RequiredLevel=15, MinLogs=1, MaxLogs=2, XpPerCycle=14, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_5", Name="Gold Vein",   Icon="⛏️", RequiredLevel=20, MinLogs=1, MaxLogs=2, XpPerCycle=18, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_6", Name="Mithril",     Icon="⛏️", RequiredLevel=30, MinLogs=1, MaxLogs=2, XpPerCycle=24, Duration=TimeSpan.FromSeconds(6)},
-                new TreeNode{ Id="ore_7", Name="Adamantite",  Icon="⛏️", RequiredLevel=40, MinLogs=1, MaxLogs=2, XpPerCycle=30, Duration=TimeSpan.FromSeconds(6)},
-            };
-
-            // map mining node -> output resource id
-            _nodeOutput = new Dictionary<string, string>
-            {
-                ["ore_1"] = "copper_ore",
-                ["ore_2"] = "tin_ore",
-                ["ore_3"] = "iron_ore",
-                ["ore_4"] = "silver_ore",
-                ["ore_5"] = "gold_ore",
-                ["ore_6"] = "mithril_ore",
-                ["ore_7"] = "adamant_ore",
-            };
-            // map woodcutting node -> output resource id (NEW)
-            _treeOutput = new Dictionary<string, string>
-            {
-                ["tree_1"] = "log_t1", // Shrub
-                ["tree_2"] = "log_t2", // Oak
-                ["tree_3"] = "log_t3", // Willow
-                ["tree_4"] = "log_t4", // Maple
-                ["tree_5"] = "log_t5", // Yew
-                ["tree_6"] = "log_t6", // Magic
-                ["tree_7"] = "log_t7", // Elder
-            };
+            _ores = OreRegistry.All
+                .Select(o => new TreeNode
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    Icon = o.Icon,
+                    RequiredLevel = o.RequiredLevel,
+                    XpPerCycle = o.XpPerCycle,
+                    MinLogs = o.YieldRange.min,
+                    MaxLogs = o.YieldRange.max,
+                    Duration = TimeSpan.FromSeconds(o.DurationSeconds)
+                })
+                .ToList();
 
             // Crafting recipes (planks T1..T7 as example)
             _recipes = new List<CraftRecipe>
