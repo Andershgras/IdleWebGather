@@ -201,11 +201,7 @@ namespace IdleGatherWebGame.Services
         {
             if (PlayerName is null) return false;
             if (!CanChop(node)) return false;
-
-            if (!_treeOutput.TryGetValue(node.Id, out var woodOutId))
-                woodOutId = "log_t1"; // fallback for unknown nodes
-
-            var spec = new GatherSpec($"woodcut:{node.Id}", node, woodOutId, Woodcutting);
+            var spec = new GatherSpec($"woodcut:{node.Id}", node, node.Id, Woodcutting);
 
             _job = new ActiveJob(JobType.Woodcutting, node, recipe: null, gather: spec, cycles);
             OnChange?.Invoke();
@@ -216,9 +212,7 @@ namespace IdleGatherWebGame.Services
         {
             if (PlayerName is null) return false;
             if (!CanMine(node)) return false;
-            if (!_nodeOutput.TryGetValue(node.Id, out var outId)) return false;
-
-            var spec = new GatherSpec($"mining:{node.Id}", node, outId, Mining);
+            var spec = new GatherSpec($"mining:{node.Id}", node, node.Id, Mining);
             _job = new ActiveJob(JobType.Mining, node, recipe: null, gather: spec, cycles);
             OnChange?.Invoke();
             return true;
