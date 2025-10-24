@@ -1,0 +1,823 @@
+﻿@inherits LayoutComponentBase
+@using IdleGatherWebGame.Models
+@inject IdleGatherWebGame.Services.GameState GS
+@implements IDisposable
+
+<div class="app">
+    <!-- Top Bar -->
+    <header class="topbar">
+        <!-- Left: brand + name -->
+        <div class="brand">
+            IdleGather
+            @if (GS.PlayerName is not null)
+            {
+                <span class="player-name">(@GS.PlayerName)</span>
+            }
+        </div>
+        <!-- Center: activity + progress + details -->
+        <div class="activity">
+            <div class="activity-line">
+                <span class="dot"></span>
+                <span class="activity-text">@GS.CurrentActivity</span>
+            </div>
+            <div class="progress">
+                <div style="width:@((GS.Progress01 * 100).ToString("0"))%"></div>
+            </div>
+            <div class="toasts">
+                @foreach (var t in GS.Toasts)
+                {
+                    <div class="toast chip">
+                        <span class="icon">@t.Icon</span>
+                        <span>@t.Text</span>
+                    </div>
+                }
+            </div>
+            <div class="activity-meta">
+                @if (GS.JobRunning)
+                {
+                    if (GS.ActiveNode is not null)
+                    {
+                        <span>@GS.ActiveNode.Name</span>
+                        <span>•</span>
+                        <span>@GS.ActiveOutputText</span>
+                        <span>•</span>
+                        <span>@GS.SecondsRemaining.ToString("0")s left</span>
+                        @if (GS.ActiveCyclesRemaining.HasValue)
+                        {
+                            <span>•</span>
+                
+                            <span>@GS.ActiveCyclesRemaining cycles left</span>
+                        }
+                        <button class="btn tiny ghost" @onclick="GS.StopChop">Stop</button>
+                    }
+                    else if (GS.ActiveRecipe is not null)
+                    {
+                        <span>@GS.ActiveRecipe.Name</span>
+                        <span>•</span>
+                        <span>@GS.ActiveOutputText</span>
+                        <span>•</span>
+                        <span>@GS.SecondsRemaining.ToString("0")s left</span>
+                        @if (GS.ActiveCyclesRemaining.HasValue)
+                        {
+                            <span>•</span>
+                
+                            <span>@GS.ActiveCyclesRemaining cycles left</span>
+                        }
+                        <button class="btn tiny ghost" @onclick="GS.StopChop">Stop</button>
+                    }
+                }
+                else { <span>Idle</span> }
+            </div>
+        </div>
+        <!-- Right: Overall Level -->
+        <div class="r-strip">
+            <div class="lvl tooltip-anchor"
+                 @onmouseenter="() => _showLvl = true"
+                 @onmouseleave="() => _showLvl = false"
+                 @onclick="() => _showLvl = !_showLvl">
+                <span class="lvl-badge">Lv @GS.OverallLevel</span>
+
+                @if (_showLvl)
+                {
+                    <div class="tip-pop">
+                        <div class="tip-row"><span>Total XP</span><strong>@GS.OverallXp.ToString("0")</strong></div>
+                        <div class="tip-row"><span>To next</span><strong>@GS.OverallXpToNextLevel.ToString("0")</strong></div>
+                        <div class="mini-progress" style="margin-top:6px;">
+                            <div style="width:@(Math.Clamp(GS.OverallXp / GS.OverallXpNeededThisLevel * 100, 0, 100))%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </header>
+
+    <!-- Character creation modal -->
+    @if (GS.PlayerName is null)
+    {
+        <div class="modal-overlay">
+            <div class="modal card">
+                <h3>Create Character</h3>
+                <input class="input" @bind="newName" maxlength="16" placeholder="Enter name (max 16)..." />
+                <div class="row gap">
+                    <button class="btn" @onclick="CreateChar">Create</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Left / Main / Right -->
+    <div class="shell">
+        <!-- Left column (menus) -->
+        <aside class="left card">
+            <nav class="menu-vert">
+                <button class="menu-item @(leftTab == "Shop" ? "active" : null)" @onclick='() => SetLeft("Shop")'>Shop</button>
+                <button class="menu-item @(leftTab == "Quests" ? "active" : null)" @onclick='() => SetLeft("Quests")'>Quests</button>
+
+                <!-- Woodcutting with hover tooltip -->
+                <div class="menu-with-tip" @onmouseover="() => hoveringWood = true" @onmouseout="() => hoveringWood = false">
+                    <button class="menu-item full @(leftTab == "Woodcutting" ? "active" : null)"
+                            @onclick='() => SetLeft("Woodcutting")'>
+                        🌲 Woodcutting
+                        <span class="mini-level">Lv @GS.Woodcutting.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Woodcutting.Xp / GS.Woodcutting.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+
+                    @if (hoveringWood)
+                    {
+                        <div class="hover-tip card">
+                            <div><b>Woodcutting</b></div>
+                            <div>Level: @GS.Woodcutting.Level</div>
+                            <div>Total XP: @GS.Woodcutting.Xp.ToString("0.##")</div>
+                            <div>XP to next: @((GS.Woodcutting.XpForNextLevel - GS.Woodcutting.Xp).ToString("0.##"))</div>
+                        </div>
+                    }
+                </div>
+                <!-- Crafting with hover tooltip -->
+                <div class="menu-with-tip"
+                     @onmouseover="() => hoveringCraft = true"
+                     @onmouseout="() => hoveringCraft = false">
+                    <button class="menu-item full @(leftTab == "Crafting" ? "active" : null)"
+                            @onclick='() => SetLeft("Crafting")'>
+                        🪵 Crafting
+                        <span class="mini-level">Lv @GS.Crafting.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Crafting.Xp / GS.Crafting.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+
+                    @if (hoveringCraft)
+                    {
+                        <div class="hover-tip card">
+                            <div><b>Crafting</b></div>
+                            <div>Level: @GS.Crafting.Level</div>
+                            <div>Total XP: @GS.Crafting.Xp.ToString("0.##")</div>
+                            <div>XP to next: @((GS.Crafting.XpForNextLevel - GS.Crafting.Xp).ToString("0.##"))</div>
+                        </div>
+                    }
+                </div>
+                <!-- Mining -->
+                <div class="menu-with-tip" @onmouseover="() => hoveringMining = true" @onmouseout="() => hoveringMining = false">
+                    <button class="menu-item full @(leftTab == "Mining" ? "active" : null)" @onclick='() => SetLeft("Mining")'>
+                        ⛏️ Mining
+                        <span class="mini-level">Lv @GS.Mining.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Mining.Xp / GS.Mining.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+                    @if (hoveringMining)
+                    {
+                        <div class="hover-tip card">
+                            <div><b>Mining</b></div>
+                            <div>Level: @GS.Mining.Level</div>
+                            <div>Total XP: @GS.Mining.Xp.ToString("0.##")</div>
+                            <div>XP to next: @((GS.Mining.XpForNextLevel - GS.Mining.Xp).ToString("0.##"))</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Smelting -->
+                <div class="menu-with-tip" @onmouseover="() => hoveringSmelt = true" @onmouseout="() => hoveringSmelt = false">
+                    <button class="menu-item full @(leftTab == "Smelting" ? "active" : null)" @onclick='() => SetLeft("Smelting")'>
+                        🔥 Smelting
+                        <span class="mini-level">Lv @GS.Smelting.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Smelting.Xp / GS.Smelting.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+                    @if (hoveringSmelt)
+                    {
+                        <div class="hover-tip card">
+                            <div><b>Smelting</b></div>
+                            <div>Level: @GS.Smelting.Level</div>
+                            <div>Total XP: @GS.Smelting.Xp.ToString("0.##")</div>
+                            <div>XP to next: @((GS.Smelting.XpForNextLevel - GS.Smelting.Xp).ToString("0.##"))</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Settings Menu -->
+                <button class="menu-item @(leftTab == "Settings" ? "active" : null)" @onclick='() => SetLeft("Settings")'>Settings</button>
+            </nav>
+        </aside>
+
+        <!-- Main column -->
+        <section class="main card">
+            @if (leftTab == "Shop")
+            {
+                <h2>Shop</h2>
+                <p>Buy & sell coming later.</p>
+            }
+            else if (leftTab == "Quests")
+            {
+                <h2>Quests</h2>
+                <p>Simple quest text for now.</p>
+            }
+            else if (leftTab == "Woodcutting")
+            {
+                <!-- Woodcutting Area -->
+                <h2>Woodcutting</h2>
+
+                <div class="tree-grid">
+                    @foreach (var t in GS.TreeNodes)
+                    {
+                        var locked = !GS.CanChop(t);
+                        <div class="tree-card @(locked ? "locked" : "")"
+                             @onclick="@(() => { if (!locked) { selectedTree = t; showInfo = true; startMsg = ""; } })">
+                            <div class="tree-icon">@t.Icon</div>
+                            <div class="tree-name">@t.Name</div>
+                            <div class="tree-req">Req Lv @t.RequiredLevel</div>
+                        </div>
+                    }
+                </div>
+
+                @if (showInfo && selectedTree is not null)
+                {
+                    var node = selectedTree!;
+                    <div class="info card">
+                        <h3>@node.Name</h3>
+                        <div class="kv"><span>Requires:</span> <span>Woodcutting Lv @node.RequiredLevel</span></div>
+                        <div class="kv"><span>Outputs:</span> <span>@Math.Round(node.XpPerCycle) XP &nbsp; | &nbsp; @Math.Round(node.MinLogs)–@Math.Round(node.MaxLogs) logs</span></div>
+                        <div class="kv"><span>Duration:</span> <span>@node.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+                        <div class="row gap">
+                            <label>Gather (0 = ∞):</label>
+                            <input class="input small" type="number" min="0" @bind="gatherCount" @bind:event="oninput" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(startMsg))
+                        {
+                            <p class="small" style="color:#f7b3b3">@startMsg</p>
+                        }
+
+                        <div class="row gap">
+                            <button class="btn" type="button" disabled="@(!GS.CanChop(node))" @onclick="@(() => TryStart(node))">Start</button>
+                            <button class="btn ghost" type="button" @onclick="@(() => showInfo = false)">Close</button>
+                        </div>
+                    </div>
+                }
+            }
+            else if (leftTab == "Crafting")
+            {
+                @CraftingArea()
+            }
+            else if (leftTab == "Mining")
+            {
+
+                @MiningArea()
+            }
+            else if (leftTab == "Smelting")
+            {
+
+                @SmeltingArea()
+            }
+
+            else if (leftTab == "Settings")
+            {
+                <!-- Settings Area -->
+                <h2>Settings</h2>
+                @if (GS.PlayerName is null)
+                {
+                    <p>Create a character first.</p>
+                }
+                else
+                {
+                    <div class="row gap">
+                        <label>Name:</label>
+                        <input class="input" maxlength="16" @bind="rename" />
+                        <button class="btn" @onclick="@Rename">Save</button>
+                    </div>
+                    <div class="row gap">
+                        <button class="btn" @onclick="async () => await GS.SaveToLocalAsync(force: true)">Save now</button>
+                        <button class="btn ghost" @onclick="async () => { await GS.ClearLocalAsync(); }">Clear local save</button>
+                    </div>
+                }
+            }
+            else
+            {
+                <h2>Welcome</h2>
+                <p>Select a menu from the left.</p>
+            }
+        </section>
+
+        <!-- Right column -->
+        <aside class="right card">
+            <h3>Inventory</h3>
+            @{
+                var groups = GetInventoryGroups();
+            }
+            @if (groups.Count == 0)
+            {
+                <p class="small">You haven’t obtained any items yet.</p>
+            }
+            else
+            {
+                foreach (var group in groups)
+                {
+                    <div class="inv-section">
+                        <h4 class="inv-title">@group.Category</h4>
+                        @foreach (var item in group.Items)
+                        {
+                            var id = item.Meta.Id;
+                            var amt = item.Amount;
+                            var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
+
+                            <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
+                                <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
+
+                                <div class="inv-tip inv-pop">
+                                    <div class="tip-name">@item.Meta.Name</div>
+                                    <div class="tip-cat">@item.Meta.Category</div>
+                                    <div class="tip-amt">Owned: @Fmt(amt)</div>
+                                    @if (hasPrice)
+                                    {
+                                        <div class="tip-amt">Sell Price: @unitPrice</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
+                        {
+                            var meta = _invMeta[selectedItemId];
+                            var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
+
+                            <div class="sell-panel card">
+                                <div class="sell-title">@Fmt(SelectedItemOwned) @meta.Name</div>
+
+                                <div class="sell-row">
+                                    <input class="input small" type="number" min="1" max="@MaxSellAll" @bind="sellAmount" @bind:event="oninput" />
+                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
+                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
+                                </div>
+
+                                @if (hasPrice)
+                                {
+                                    <div class="sell-row">
+                                        <button class="btn wide"
+                                                disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
+                                                @onclick="SellSelected">
+                                            Sell for @(sellAmount * p) Coins
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="sell-row">
+                                        <span class="small">This item cannot be sold.</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </aside>
+    </div>
+</div>
+
+@code {
+    // ---------- Tabs / UI ----------
+    string leftTab = "Woodcutting";
+    bool hoveringWood = false;
+    string newName = "";
+    string rename = "";
+
+    // ---------- Selection ----------
+    TreeNode? selectedTree;
+    bool showInfo = false;
+
+    // ---------- Gather cycles (0 = infinite) ----------
+    int gatherCount = 0;
+
+    // ---------- Start feedback / debug ----------
+    string startMsg = "";
+
+    string Fmt(double v) => v.ToString("0");
+    void SetLeft(string t) => leftTab = t;
+
+    void CreateChar()
+    {
+        GS.CreateCharacter(newName);
+        StateHasChanged();
+    }
+
+    // ----- lifecycle / autosave wiring -----
+    private bool _autosaveHooked = false;
+
+    protected override void OnInitialized()
+    {
+        GS.OnChange += StateHasChanged;
+    }
+
+    // Load after first render (JS runtime ready) + hook autosave once
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await GS.LoadFromLocalAsync();
+
+        if (!_autosaveHooked)
+        {
+            GS.OnChange += async () => await GS.SaveToLocalAsync(); // debounced in GameState
+            _autosaveHooked = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        GS.OnChange -= StateHasChanged;
+        // (we don't attempt to detach the autosave lambda; it's fine for app lifetime)
+    }
+
+    bool TryStart(TreeNode node)
+    {
+        int? cycles = (gatherCount <= 0) ? null : gatherCount;
+
+        if (GS.PlayerName is null)
+        {
+            startMsg = "Create a character first.";
+            StateHasChanged();
+            return false;
+        }
+        if (!GS.CanChop(node))
+        {
+            startMsg = $"Requires Woodcutting Lv {node.RequiredLevel}.";
+            StateHasChanged();
+            return false;
+        }
+
+        bool ok = GS.StartChop(node, cycles);
+        startMsg = ok ? "" : "Could not start job (unexpected).";
+        showInfo = true;
+        StateHasChanged();
+        return ok;
+    }
+
+    void Rename()
+    {
+        if (GS.PlayerName is null) return;
+        GS.CreateCharacter(rename);
+    }
+
+    // ===========================
+    // Inventory model/helpers
+    // ===========================
+    private class InvMeta
+    {
+        public string Id { get; }
+        public string Name { get; }
+        public string Category { get; }
+        public string Img { get; }
+        public string Description { get; }
+        public InvMeta(string id, string name, string cat, string img, string desc)
+        { Id = id; Name = name; Category = cat; Img = img; Description = desc; }
+    }
+    private class InvItem { public InvMeta Meta { get; set; } = default!; public double Amount { get; set; } }
+    private class InvGroup { public string Category { get; set; } = ""; public List<InvItem> Items { get; set; } = new(); }
+
+    // Inline SVG placeholders
+    private const string IMG_WOOD = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%232a3a1f'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%8C%B2%3C/text%3E%3C/svg%3E";
+    private const string IMG_STONE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23272b36'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E";
+    private const string IMG_KEYS = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%233a2f16'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%97%9D%EF%B8%8F%3C/text%3E%3C/svg%3E";
+    private const string IMG_COINS = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%236b5500'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%AA%99%3C/text%3E%3C/svg%3E";
+    private const string IMG_PLANK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23402a14'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%AA%B5%3C/text%3E%3C/svg%3E";
+    private const string IMG_ORE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23272b36'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%AA%A8%3C/text%3E%3C/svg%3E";
+    private const string IMG_BAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23323a3f'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='40'%3E%F0%9F%94%A9%3C/text%3E%3C/svg%3E";
+
+    private readonly Dictionary<string, InvMeta> _invMeta = new()
+    {
+		["wood"] = new InvMeta("wood", "Log", "Resources", IMG_WOOD, "Common logs gathered from trees."), // legacy
+        ["stone"] = new InvMeta("stone", "Stone", "Resources", IMG_STONE, "Rough stones for crafting."),
+        ["keys"] = new InvMeta("keys", "Keys", "Currencies", IMG_KEYS, "Keys used to unlock things."),
+        ["coins"] = new InvMeta("coins", "Coins", "Currencies", IMG_COINS, "The main currency."),
+
+        // logs (NEW)
+        ["log_t1"] = new InvMeta("log_t1", "Log (T1)", "Resources", IMG_WOOD, "Common logs from shrubs."),
+        ["log_t2"] = new InvMeta("log_t2", "Log (T2)", "Resources", IMG_WOOD, "Sturdy oak logs."),
+        ["log_t3"] = new InvMeta("log_t3", "Log (T3)", "Resources", IMG_WOOD, "Willow logs."),
+        ["log_t4"] = new InvMeta("log_t4", "Log (T4)", "Resources", IMG_WOOD, "Maple logs."),
+        ["log_t5"] = new InvMeta("log_t5", "Log (T5)", "Resources", IMG_WOOD, "Yew logs."),
+        ["log_t6"] = new InvMeta("log_t6", "Log (T6)", "Resources", IMG_WOOD, "Magic logs."),
+        ["log_t7"] = new InvMeta("log_t7", "Log (T7)", "Resources", IMG_WOOD, "Elder logs."),
+
+		// planks
+        ["plank_t1"] = new InvMeta("plank_t1", "Plank (T1)", "Materials", IMG_PLANK, "A basic wooden plank."),
+		["plank_t2"] = new InvMeta("plank_t2", "Plank (T2)", "Materials", IMG_PLANK, "A standard wooden plank."),
+        ["plank_t3"] = new InvMeta("plank_t3", "Plank (T3)", "Materials", IMG_PLANK, "A refined wooden plank."),
+        ["plank_t4"] = new InvMeta("plank_t4", "Plank (T4)", "Materials", IMG_PLANK, "A high-quality wooden plank."),
+        ["plank_t5"] = new InvMeta("plank_t5", "Plank (T5)", "Materials", IMG_PLANK, "An excellent wooden plank."),
+        ["plank_t6"] = new InvMeta("plank_t6", "Plank (T6)", "Materials", IMG_PLANK, "A superior wooden plank."),
+		["plank_t7"] = new InvMeta("plank_t7", "Plank (T7)", "Materials", IMG_PLANK, "A masterwork wooden plank."),
+
+        // ores
+        ["copper_ore"] = new InvMeta("copper_ore", "Copper Ore", "Resources", IMG_STONE, "Ore for smelting."),
+        ["tin_ore"] = new InvMeta("tin_ore", "Tin Ore", "Resources", IMG_STONE, "Ore for smelting."),
+        ["iron_ore"] = new InvMeta("iron_ore", "Iron Ore", "Resources", IMG_STONE, "Ore for smelting."),
+        ["silver_ore"] = new InvMeta("silver_ore", "Silver Ore", "Resources", IMG_ORE, "Ore for smelting."),
+        ["gold_ore"] = new InvMeta("gold_ore", "Gold Ore", "Resources", IMG_ORE, "Ore for smelting."),
+        ["mithril_ore"] = new InvMeta("mithril_ore", "Mithril Ore", "Resources", IMG_ORE, "Ore for smelting."),
+        ["adamant_ore"] = new InvMeta("adamant_ore", "Adamantite Ore", "Resources", IMG_ORE, "Ore for smelting."),
+
+        // bars
+        ["bronze_bar"] = new InvMeta("bronze_bar", "Bronze Bar", "Materials", IMG_BAR, "Smelted alloy."),
+        ["iron_bar"] = new InvMeta("iron_bar", "Iron Bar", "Materials", IMG_BAR, "Smelted iron."),
+        ["silver_bar"] = new InvMeta("silver_bar", "Silver Bar", "Materials", IMG_BAR, "Smelted metal."),
+        ["gold_bar"] = new InvMeta("gold_bar", "Gold Bar", "Materials", IMG_BAR, "Smelted metal."),
+        ["mith_bar"] = new InvMeta("mith_bar", "Mithril Bar", "Materials", IMG_BAR, "Smelted metal."),
+        ["adam_bar"] = new InvMeta("adam_bar", "Adamant Bar", "Materials", IMG_BAR, "Smelted metal."),
+    };
+
+    // sell-panel state
+    string? selectedItemId = null;
+    int sellAmount = 1;
+    double SelectedItemOwned => selectedItemId is null ? 0 : GS.GetAmount(selectedItemId);
+    int MaxSellAll => (int)Math.Floor(SelectedItemOwned);
+
+    private List<InvGroup> GetInventoryGroups()
+    {
+        var byCat = new Dictionary<string, InvGroup>();
+
+        foreach (var kv in GS.Resources)
+        {
+            var id = kv.Key;
+            var amount = kv.Value.Amount;
+            if (amount <= 0) continue;
+
+            if (!_invMeta.TryGetValue(id, out var meta))
+            {
+                // fallback so new items still show up
+                meta = new InvMeta(id, IdToNice(id), "Other", IMG_ORE, "");
+            }
+            if (!byCat.TryGetValue(meta.Category, out var group))
+            {
+                group = new InvGroup { Category = meta.Category, Items = new List<InvItem>() };
+                byCat[meta.Category] = group;
+            }
+
+            group.Items.Add(new InvItem { Meta = meta, Amount = amount });
+        }
+
+        var groups = byCat.Values.OrderBy(g => g.Category).ToList();
+        foreach (var g in groups)
+            g.Items = g.Items.OrderBy(i => i.Meta.Name).ToList();
+
+        return groups;
+    }
+
+    void OpenItemPanel(string id, double owned)
+    {
+        selectedItemId = id;
+        sellAmount = owned >= 1 ? 1 : 0;
+    }
+
+    void SellSelected()
+    {
+        if (selectedItemId is null) return;
+        var qty = Math.Clamp(sellAmount, 0, MaxSellAll);
+        if (qty <= 0) return;
+
+        var earned = GS.Sell(selectedItemId, qty); // adds coins, subtracts item
+        sellAmount = Math.Clamp(sellAmount, 1, MaxSellAll);
+    }
+
+    // ------ Crafting UI ------
+    IdleGatherWebGame.Services.GameState.CraftRecipe? selectedRecipe;
+    bool showCraft = false;
+    int craftCount = 0; // 0 = infinite
+    string craftMsg = "";
+
+    RenderFragment CraftingArea() => __builder =>
+    {
+        <h2>Crafting</h2>
+
+        <p class="small">
+            Craft Lv @GS.Crafting.Level • XP @GS.Crafting.Xp.ToString("0") / @GS.Crafting.XpForNextLevel.ToString("0")
+        </p>
+
+        <div class="tree-grid">
+            @foreach (var r in GS.CraftingRecipes)
+            {
+                var locked = GS.Crafting.Level < r.RequiredLevel;
+                <div class="tree-card @(locked ? "locked" : "")"
+                     @onclick="@(() => { if (!locked) { selectedRecipe = r; showCraft = true; craftMsg = ""; } })">
+                    <div class="tree-icon">@r.Icon</div>
+                    <div class="tree-name">@r.Name</div>
+                    <div class="tree-req">Req Lv @r.RequiredLevel</div>
+                </div>
+            }
+        </div>
+
+        @if (showCraft && selectedRecipe is not null)
+        {
+            var r = selectedRecipe!;
+            <div class="info card">
+                <h3>@r.Name</h3>
+                <div class="kv"><span>Requires:</span> <span>Crafting Lv @r.RequiredLevel</span></div>
+                <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
+                <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
+                <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+                <div class="row gap">
+                    <label>Craft (0 = ∞):</label>
+                    <input class="input small" type="number" min="0" @bind="craftCount" @bind:event="oninput" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(craftMsg))
+                {
+                    <p class="small" style="color:#f7b3b3">@craftMsg</p>
+                }
+
+                <div class="row gap">
+                    <button class="btn" type="button"
+                            disabled="@(GS.Crafting.Level < r.RequiredLevel || !HasInputsOnce(r))"
+                            @onclick="@(() => TryStartCraft(r))">
+                        Start
+                    </button>
+                    <button class="btn ghost" type="button" @onclick="@(() => showCraft = false)">Close</button>
+                </div>
+            </div>
+        }
+    };
+
+    bool TryStartCraft(IdleGatherWebGame.Services.GameState.CraftRecipe r)
+    {
+        if (GS.PlayerName is null) { craftMsg = "Create a character first."; StateHasChanged(); return false; }
+        if (GS.Crafting.Level < r.RequiredLevel) { craftMsg = $"Requires Crafting Lv {r.RequiredLevel}."; StateHasChanged(); return false; }
+        if (!HasInputsOnce(r)) { craftMsg = "Not enough materials for one craft."; StateHasChanged(); return false; }
+
+        int? cycles = (craftCount <= 0) ? null : craftCount;
+        var ok = GS.StartCraft(r, cycles);
+        craftMsg = ok ? "" : "Could not start crafting.";
+        StateHasChanged();
+        return ok;
+    }
+
+    // local helper to print ids like “wood” => “Logs”
+    string IdToNice(string id) => id switch
+    {
+        "wood" => "Logs",
+        "plank_t1" => "Plank (T1)",
+        "plank_t2" => "Plank (T2)",
+        "plank_t3" => "Plank (T3)",
+        "plank_t4" => "Plank (T4)",
+        "plank_t5" => "Plank (T5)",
+        "plank_t6" => "Plank (T6)",
+        "plank_t7" => "Plank (T7)",
+        "copper_ore" => "Copper Ore",
+        "tin_ore" => "Tin Ore",
+        "iron_ore" => "Iron Ore",
+        "silver_ore" => "Silver Ore",
+        "gold_ore" => "Gold Ore",
+        "mithril_ore" => "Mithril Ore",
+        "adamant_ore" => "Adamantite Ore",
+        "bronze_bar" => "Bronze Bar",
+        "iron_bar" => "Iron Bar",
+        "silver_bar" => "Silver Bar",
+        "gold_bar" => "Gold Bar",
+        "mith_bar" => "Mithril Bar",
+        "adam_bar" => "Adamant Bar",
+        _ => id.Replace('_', ' ')
+    };
+
+    // Helpers — keep ONLY this one
+    bool HasInputsOnce(IdleGatherWebGame.Services.GameState.CraftRecipe r)
+        => r.Inputs.All(i => Math.Floor(GS.GetAmount(i.ResourceId)) >= i.Amount);
+
+    bool hoveringCraft = false;
+    bool hoveringMining = false;
+    bool hoveringSmelt = false;
+
+    // ===== Mining Area =====
+    TreeNode? selectedOre;
+    bool showOre = false;
+    int mineCount = 0; // 0 = ∞
+    string mineMsg = "";
+
+    RenderFragment MiningArea() => __builder =>
+    {
+        <h2>Mining</h2>
+        <div class="tree-grid">
+            @foreach (var n in GS.OreNodes)
+            {
+                var locked = !GS.CanMine(n);
+                <div class="tree-card @(locked ? "locked" : "")"
+                     @onclick="@(() => { if (!locked) { selectedOre = n; showOre = true; mineMsg = ""; } })">
+                    <div class="tree-icon">@n.Icon</div>
+                    <div class="tree-name">@n.Name</div>
+                    <div class="tree-req">Req Lv @n.RequiredLevel</div>
+                </div>
+            }
+        </div>
+
+        @if (showOre && selectedOre is not null)
+        {
+            var n = selectedOre!;
+            <div class="info card">
+                <h3>@n.Name</h3>
+                <div class="kv"><span>Requires:</span> <span>Mining Lv @n.RequiredLevel</span></div>
+                <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinLogs)–@Math.Round(n.MaxLogs) ore • @Math.Round(n.XpPerCycle) XP</span></div>
+                <div class="kv"><span>Duration:</span> <span>@n.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+                <div class="row gap">
+                    <label>Mine (0 = ∞):</label>
+                    <input class="input small" type="number" min="0" @bind="mineCount" @bind:event="oninput" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(mineMsg))
+                {
+                    <p class="small" style="color:#f7b3b3">@mineMsg</p>
+                }
+
+                <div class="row gap">
+                    <button class="btn" type="button" disabled="@(!GS.CanMine(n))"
+                            @onclick="@(() => TryStartMine(n))">
+                        Start
+                    </button>
+                    <button class="btn ghost" type="button" @onclick="@(() => showOre = false)">Close</button>
+                </div>
+            </div>
+        }
+    };
+
+    bool TryStartMine(TreeNode n)
+    {
+        if (GS.PlayerName is null) { mineMsg = "Create a character first."; StateHasChanged(); return false; }
+        if (!GS.CanMine(n)) { mineMsg = $"Requires Mining Lv {n.RequiredLevel}."; StateHasChanged(); return false; }
+        int? cycles = (mineCount <= 0) ? null : mineCount;
+        var ok = GS.StartMine(n, cycles);
+        mineMsg = ok ? "" : "Could not start mining.";
+        StateHasChanged();
+        return ok;
+    }
+
+    // ===== Smelting Area =====
+    IdleGatherWebGame.Services.GameState.CraftRecipe? selectedSmelt;
+    bool showSmelt = false;
+    int smeltCount = 0; // 0 = ∞
+    string smeltMsg = "";
+
+    RenderFragment SmeltingArea() => __builder =>
+    {
+        <h2>Smelting</h2>
+        <div class="tree-grid">
+            @foreach (var r in GS.SmeltingRecipes)
+            {
+                var locked = GS.Smelting.Level < r.RequiredLevel;
+                <div class="tree-card @(locked ? "locked" : "")"
+                     @onclick="@(() => { if (!locked) { selectedSmelt = r; showSmelt = true; smeltMsg = ""; } })">
+                    <div class="tree-icon">@r.Icon</div>
+                    <div class="tree-name">@r.Name</div>
+                    <div class="tree-req">Req Lv @r.RequiredLevel</div>
+                </div>
+            }
+        </div>
+
+        @if (showSmelt && selectedSmelt is not null)
+        {
+            var r = selectedSmelt!;
+            <div class="info card">
+                <h3>@r.Name</h3>
+                <div class="kv"><span>Requires:</span> <span>Smelting Lv @r.RequiredLevel</span></div>
+                <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
+                <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
+                <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+                <div class="row gap">
+                    <label>Smelt (0 = ∞):</label>
+                    <input class="input small" type="number" min="0" @bind="smeltCount" @bind:event="oninput" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(smeltMsg))
+                {
+                    <p class="small" style="color:#f7b3b3">@smeltMsg</p>
+                }
+
+                <div class="row gap">
+                    <button class="btn" type="button"
+                            disabled="@(GS.Smelting.Level < r.RequiredLevel || !HasInputsOnce(r))"
+                            @onclick="@(() => TryStartSmelt(r))">
+                        Start
+                    </button>
+                    <button class="btn ghost" type="button" @onclick="@(() => showSmelt = false)">Close</button>
+                </div>
+            </div>
+        }
+    };
+
+    bool TryStartSmelt(IdleGatherWebGame.Services.GameState.CraftRecipe r)
+    {
+        if (GS.PlayerName is null) { smeltMsg = "Create a character first."; StateHasChanged(); return false; }
+        if (GS.Smelting.Level < r.RequiredLevel) { smeltMsg = $"Requires Smelting Lv {r.RequiredLevel}."; StateHasChanged(); return false; }
+        if (!HasInputsOnce(r)) { smeltMsg = "Not enough materials."; StateHasChanged(); return false; }
+
+        int? cycles = (smeltCount <= 0) ? null : smeltCount;
+        var ok = GS.StartSmelt(r, cycles);
+        smeltMsg = ok ? "" : "Could not start smelting.";
+        StateHasChanged();
+        return ok;
+    }
+    bool _showLvl;
+}
