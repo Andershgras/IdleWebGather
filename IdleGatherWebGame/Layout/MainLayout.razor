@@ -240,7 +240,7 @@
                     <div class="info card">
                         <h3>@node.Name</h3>
                         <div class="kv"><span>Requires:</span> <span>Woodcutting Lv @node.RequiredLevel</span></div>
-                        <div class="kv"><span>Outputs:</span> <span>@Math.Round(node.XpPerCycle) XP &nbsp; | &nbsp; @Math.Round(node.MinLogs)–@Math.Round(node.MaxLogs) logs</span></div>
+                        <div class="kv"><span>Outputs:</span> <span>@Math.Round(node.XpPerCycle) XP &nbsp; | &nbsp; @Math.Round(node.MinYield)–@Math.Round(node.MaxYield) logs</span></div>
                         <div class="kv"><span>Duration:</span> <span>@node.Duration.TotalSeconds.ToString("0.#")s</span></div>
 
                         <div class="row gap">
@@ -402,7 +402,7 @@
     string rename = "";
 
     // ---------- Selection ----------
-    TreeNode? selectedTree;
+    WorkNode? selectedTree;
     bool showInfo = false;
 
     // ---------- Gather cycles (0 = infinite) ----------
@@ -448,7 +448,7 @@
         // (we don't attempt to detach the autosave lambda; it's fine for app lifetime)
     }
 
-    bool TryStart(TreeNode node)
+    bool TryStart(WorkNode node)
     {
         int? cycles = (gatherCount <= 0) ? null : gatherCount;
 
@@ -707,7 +707,7 @@
     bool hoveringSmelt = false;
 
     // ===== Mining Area =====
-    TreeNode? selectedOre;
+    WorkNode? selectedOre;
     bool showOre = false;
     int mineCount = 0; // 0 = ∞
     string mineMsg = "";
@@ -734,7 +734,7 @@
             <div class="info card">
                 <h3>@n.Name</h3>
                 <div class="kv"><span>Requires:</span> <span>Mining Lv @n.RequiredLevel</span></div>
-                <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinLogs)–@Math.Round(n.MaxLogs) ore • @Math.Round(n.XpPerCycle) XP</span></div>
+                <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) ore • @Math.Round(n.XpPerCycle) XP</span></div>
                 <div class="kv"><span>Duration:</span> <span>@n.Duration.TotalSeconds.ToString("0.#")s</span></div>
 
                 <div class="row gap">
@@ -758,7 +758,7 @@
         }
     };
 
-    bool TryStartMine(TreeNode n)
+    bool TryStartMine(WorkNode n)
     {
         if (GS.PlayerName is null) { mineMsg = "Create a character first."; StateHasChanged(); return false; }
         if (!GS.CanMine(n)) { mineMsg = $"Requires Mining Lv {n.RequiredLevel}."; StateHasChanged(); return false; }

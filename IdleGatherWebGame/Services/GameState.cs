@@ -38,7 +38,7 @@ namespace IdleGatherWebGame.Services
         // Tiny data for generic gathering
         private sealed record GatherSpec(
             string Id,               // e.g., "woodcut:tree_1" or "mining:ore_1"
-            TreeNode Node,           // timing, min/max yield, xp
+            WorkNode Node,           // timing, min/max yield, xp
             string OutputResourceId, // resource granted per cycle
             Skill Skill              // which skill receives XP
         );
@@ -60,14 +60,14 @@ namespace IdleGatherWebGame.Services
         private sealed class ActiveJob
         {
             public JobType Type { get; }
-            public TreeNode? Node { get; }
+            public WorkNode? Node { get; }
             public CraftRecipe? Recipe { get; }
             public GatherSpec? Gather { get; } // non-null for gathering jobs
             public TimeSpan Duration { get; }
             public TimeSpan Elapsed { get; private set; }
             public int? CyclesRemaining { get; private set; } // null = infinite
 
-            public ActiveJob(JobType type, TreeNode? node, CraftRecipe? recipe, GatherSpec? gather, int? cycles)
+            public ActiveJob(JobType type, WorkNode? node, CraftRecipe? recipe, GatherSpec? gather, int? cycles)
             {
                 Type = type;
                 Node = node;
@@ -98,8 +98,8 @@ namespace IdleGatherWebGame.Services
         public string? PlayerName { get; private set; }
 
         public IReadOnlyDictionary<string, Resource> Resources => _resources;
-        public IReadOnlyList<TreeNode> TreeNodes => _trees;
-        public IReadOnlyList<TreeNode> OreNodes => _ores;
+        public IReadOnlyList<WorkNode> TreeNodes => _trees;
+        public IReadOnlyList<WorkNode> OreNodes => _ores;
         public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
         public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
 
@@ -115,7 +115,7 @@ namespace IdleGatherWebGame.Services
             => _job is null ? 0 : Math.Max(0, (_job.Duration - _job.Elapsed).TotalSeconds);
 
         public int? ActiveCyclesRemaining => _job?.CyclesRemaining;
-        public TreeNode? ActiveNode => _job?.Node;
+        public WorkNode? ActiveNode => _job?.Node;
         public CraftRecipe? ActiveRecipe => _job?.Recipe;
 
         public string CurrentActivity => _job switch
@@ -130,7 +130,7 @@ namespace IdleGatherWebGame.Services
 
         public string ActiveOutputText => _job switch
         {
-            { Gather: not null } j => $"{Math.Round(j.Gather!.Node.MinLogs)}–{Math.Round(j.Gather!.Node.MaxLogs)} " +
+            { Gather: not null } j => $"{Math.Round(j.Gather!.Node.MinYield)}–{Math.Round(j.Gather!.Node.MaxYield)} " +
                                       $"{NiceUnitFor(j.Gather!.OutputResourceId)}, {Math.Round(j.Gather!.Node.XpPerCycle)} XP",
             { Recipe: not null } j => $"{string.Join(", ", j.Recipe!.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))}, " +
                                       $"{Math.Round(j.Recipe!.XpPerCycle)} XP",
@@ -192,23 +192,23 @@ namespace IdleGatherWebGame.Services
         }
 
         // ---------- Public API: Start/Stop ----------
-        public bool CanChop(TreeNode n) => Woodcutting.Level >= n.RequiredLevel;
-        public bool CanMine(TreeNode n) => Mining.Level >= n.RequiredLevel;
+        public bool CanChop(WorkNode n) => Woodcutting.Level >= n.RequiredLevel;
+        public bool CanMine(WorkNode n) => Mining.Level >= n.RequiredLevel;
         public bool CanCraft(CraftRecipe r) => Crafting.Level >= r.RequiredLevel;
         public bool CanSmelt(CraftRecipe r) => Smelting.Level >= r.RequiredLevel;
 
-        public bool StartChop(TreeNode node, int? cycles)
+        public bool StartChop(WorkNode node, int? cycles)
         {
             if (PlayerName is null) return false;
             if (!CanChop(node)) return false;
-            var spec = new GatherSpec($"woodcut:{node.Id}", node, node.Id, Woodcutting);
+            var spec = new GatherSpec($"woodcut:{node.Id}", node, TreeOutputId(node.Id), Woodcutting);
 
             _job = new ActiveJob(JobType.Woodcutting, node, recipe: null, gather: spec, cycles);
             OnChange?.Invoke();
             return true;
         }
 
-        public bool StartMine(TreeNode node, int? cycles)
+        public bool StartMine(WorkNode node, int? cycles)
         {
             if (PlayerName is null) return false;
             if (!CanMine(node)) return false;
@@ -315,7 +315,7 @@ namespace IdleGatherWebGame.Services
 
                 // roll integer yield
                 var rng = Random.Shared;
-                var amtDouble = g.Node.MinLogs + (g.Node.MaxLogs - g.Node.MinLogs) * rng.NextDouble();
+                var amtDouble = g.Node.MinYield + (g.Node.MaxYield - g.Node.MinYield) * rng.NextDouble();
                 var amt = Math.Max(1, (int)Math.Round(amtDouble));
 
                 Add(g.OutputResourceId, amt);
@@ -450,28 +450,29 @@ namespace IdleGatherWebGame.Services
             );
             // Woodcutting: build trees from TreeRegistry
             _trees = TreeRegistry.All
-                .Select(t => new TreeNode
+                .Select(t => new WorkNode
                 {
                     Id = t.Id,
                     Name = t.Name,
                     Icon = t.Icon,
                     RequiredLevel = t.RequiredLevel,
                     XpPerCycle = t.XpPerCycle,
-                    MinLogs = t.MinLogs,
-                    MaxLogs = t.MaxLogs,
+                    MinYield = t.MinLogs,
+                    MaxYield = t.MaxLogs,
                     Duration = TimeSpan.FromSeconds(t.DurationSeconds)
                 })
                 .ToList();
+
             _ores = OreRegistry.All
-                .Select(o => new TreeNode
+                .Select(o => new WorkNode
                 {
                     Id = o.Id,
                     Name = o.Name,
                     Icon = o.Icon,
                     RequiredLevel = o.RequiredLevel,
                     XpPerCycle = o.XpPerCycle,
-                    MinLogs = o.YieldRange.min,
-                    MaxLogs = o.YieldRange.max,
+                    MinYield = o.YieldRange.min,
+                    MaxYield = o.YieldRange.max,
                     Duration = TimeSpan.FromSeconds(o.DurationSeconds)
                 })
                 .ToList();
@@ -486,13 +487,10 @@ namespace IdleGatherWebGame.Services
         private const int TickMs = 200; // 5 ticks/sec for smoother bars
         private readonly List<Toast> _toasts = new();
         private Dictionary<string, Resource> _resources = new();
-        private List<TreeNode> _trees = new();
-        private List<TreeNode> _ores = new();
+        private List<WorkNode> _trees = new();
+        private List<WorkNode> _ores = new();
         private List<CraftRecipe> _recipes = new();
         private List<CraftRecipe> _smelt = new();
-        private Dictionary<string, string> _nodeOutput = new();
-        private Dictionary<string, string> _treeOutput = new();
-
         private ActiveJob? _job;
         private readonly Timer _timer;
 
@@ -574,27 +572,13 @@ namespace IdleGatherWebGame.Services
                     if (node is not null)
                     {
                         bool isWood = _trees.Any(t => t.Id == node.Id);
-
-                        string outId;
-                        if (isWood)
-                        {
-                            // Use new per-tree wood output (e.g., tree_1 -> log_t1, tree_2 -> log_t2, ...)
-                            outId = _treeOutput.TryGetValue(node.Id, out var wId) ? wId : "log_t1";
-                        }
-                        else
-                        {
-                            // Mining still uses ore output map
-                            outId = _nodeOutput.TryGetValue(node.Id, out var rId) ? rId : "stone";
-                        }
+                        var outId = isWood ? TreeOutputId(node.Id) : node.Id;
 
                         var skill = isWood ? Woodcutting : Mining;
                         var type = isWood ? JobType.Woodcutting : JobType.Mining;
 
                         var spec = new GatherSpec($"{(isWood ? "woodcut" : "mining")}:{node.Id}", node, outId, skill);
                         _job = new ActiveJob(type, node, null, spec, cycles: null);
-
-                        var elapsed = Math.Clamp(aj.ElapsedSeconds, 0, _job.Duration.TotalSeconds);
-                        _job.Advance(TimeSpan.FromSeconds(elapsed));
                     }
                 }
                 else if (!string.IsNullOrEmpty(aj.RecipeId))
@@ -731,5 +715,16 @@ namespace IdleGatherWebGame.Services
                 data.SaveVersion = 1; // mark migrated
             }
         }
+        private static string TreeOutputId(string nodeId) => nodeId switch
+        {
+            "tree_1" => "log_t1",
+            "tree_2" => "log_t2",
+            "tree_3" => "log_t3",
+            "tree_4" => "log_t4",
+            "tree_5" => "log_t5",
+            "tree_6" => "log_t6",
+            "tree_7" => "log_t7",
+            _ => "log_t1",
+        };
     }
 }

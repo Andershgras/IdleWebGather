@@ -20,4 +20,10 @@ public class Skill
             Level++;
         }
     }
+    public void Restore(int level, double xp)
+    {
+        // clamp a bit for safety
+        Level = Math.Max(1, level);
+        Xp = Math.Max(0, xp);
+    }
 }

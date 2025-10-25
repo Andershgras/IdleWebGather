@@ -41,14 +41,11 @@ public sealed class SkillService : ISkillService
     public void LoadFromDictionary(Dictionary<string, PlayerData.SkillData> saved)
     {
         if (saved is null) return;
+
         foreach (var (id, data) in saved)
         {
-            var s = Get(id); // ensures it exists
-            // restore using your Skill API
-            // add XP to reach saved state (same idea as your current restore code)
-            s.AddXp(data.Xp);
-            while (s.Level < data.Level)
-                s.AddXp(s.XpForNextLevel - s.Xp + 0.0001);
+            var s = Get(id);        // ensure it exists
+            s.Restore(data.Level, data.Xp);
         }
     }
 }
