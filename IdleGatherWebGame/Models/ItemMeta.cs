@@ -13,8 +13,9 @@ public static class ItemRegistry
     // Single source of truth
     private static readonly Dictionary<string, ItemMeta> _byId = new()
     {
-        // Base
+        // Currencies
         ["coins"] = new("coins", "Coins", "Currencies", "🪙", null), //Main Currency
+        ["chips"] = new("chips", "Chips", "Currencies", "🎰", null), //Casino Currency
         // Logs
         ["log_t1"] = new("log_t1", "Log (T1)", "Resources", "🌲", 2),
         ["log_t2"] = new("log_t2", "Log (T2)", "Resources", "🌲", 3),

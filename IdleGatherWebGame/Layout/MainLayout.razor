@@ -300,6 +300,7 @@
             {
                 <div class="casino-tab">
                     <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button class="@BtnClass(CasinoGame.Exchange)"  @onclick="() => SelectGame(CasinoGame.Exchange)">Exchange</button>
                         <button class="@BtnClass(CasinoGame.CoinFlip)" @onclick="() => SelectGame(CasinoGame.CoinFlip)">Coin Flip</button>
                         <button class="@BtnClass(CasinoGame.Roulette)" @onclick="() => SelectGame(CasinoGame.Roulette)">Roulette</button>
                         <button class="@BtnClass(CasinoGame.Blackjack)" @onclick="() => SelectGame(CasinoGame.Blackjack)">Blackjack</button>
@@ -308,6 +309,7 @@
                     <div class="mt-2">
                         @(_selectedCasinoGame switch
                         {
+                            CasinoGame.Exchange => ExchangeView,
                             CasinoGame.CoinFlip => CoinFlipView,
                             CasinoGame.Roulette => RouletteView,
                             CasinoGame.Blackjack => BlackjackView,
@@ -505,9 +507,8 @@
 
     private readonly Dictionary<string, InvMeta> _invMeta = new()
     {
-		["wood"] = new InvMeta("wood", "Log", "Resources", IMG_WOOD, "Common logs gathered from trees."), // legacy
-        ["stone"] = new InvMeta("stone", "Stone", "Resources", IMG_STONE, "Rough stones for crafting."),
-        ["keys"] = new InvMeta("keys", "Keys", "Currencies", IMG_KEYS, "Keys used to unlock things."),
+        //Currency
+        ["chips"] = new InvMeta("chips", "Chips", "Currencies", IMG_COINS, "Casino chips used to play games."),
         ["coins"] = new InvMeta("coins", "Coins", "Currencies", IMG_COINS, "The main currency."),
 
         // logs (NEW)
@@ -837,22 +838,47 @@
     }
     bool _showLvl;
     // CASINO AREA
-    private enum CasinoGame { None, CoinFlip, Roulette, Blackjack }
+    private enum CasinoGame { None, Exchange, CoinFlip, Roulette, Blackjack }
     private CasinoGame _selectedCasinoGame = CasinoGame.None;
 
     private void SelectGame(CasinoGame game) => _selectedCasinoGame = game;
 
     private string BtnClass(CasinoGame game)
         => $"btn {(_selectedCasinoGame == game ? "btn-primary" : "btn-outline-primary")}";
-
+    // --- Exchange state ---
+    private double _exchangeAmount = 0;
+    private string _exchangeMsg = string.Empty;
     // Inline "components" (no extra files needed)
     private RenderFragment DefaultView => @<p>Select a game above.</p>;
+	// --- Exchange logic ---
+    private RenderFragment ExchangeView => @<div class="card p-3">
+    <h4>Exchange Coins → Chips</h4>
+    <div class="mb-2">
+        <strong>Coins:</strong> @Format(GS.GetAmount("coins"))
+        &nbsp; • &nbsp;
+        <strong>Chips:</strong> @Format(GS.GetAmount("chips"))
+    </div>
 
-    private RenderFragment CoinFlipView => @<div>
-        <h4>Coin Flip</h4>
-        <p>Heads or tails? (Coming soon)</p>
-    @* Put Coin Flip UI/logic here *@
-    </div>;
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <input type="number" min="0" step="1" class="form-control"
+               style="width:140px"
+               @bind="_exchangeAmount" @bind:event="oninput" />
+        <button class="btn btn-outline-secondary" @onclick="() => SetAmount(10)">+10</button>
+        <button class="btn btn-outline-secondary" @onclick="() => SetAmount(50)">+50</button>
+        <button class="btn btn-outline-secondary" @onclick="() => SetAmount(100)">+100</button>
+        <button class="btn btn-outline-secondary" @onclick="SetMax">Max</button>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" @onclick="DoExchange">Exchange 1:1</button>
+        <button class="btn btn-outline-secondary" @onclick="ClearAmount">Clear</button>
+    </div>
+
+@if (!string.IsNullOrWhiteSpace(_exchangeMsg))
+    {
+    <div class="mt-2 small text-muted">@_exchangeMsg</div>
+    }
+</div>;
 
     private RenderFragment RouletteView => @<div>
         <h4>Roulette</h4>
@@ -865,4 +891,109 @@
         <p>Try to hit 21. (Coming soon)</p>
     @* Put Blackjack UI/logic here *@
     </div>;
+
+    private static string Format(double v) => Math.Round(v, 0).ToString("N0");
+
+    private void SetAmount(int add)
+    {
+        _exchangeAmount = Math.Max(0, Math.Round(_exchangeAmount + add, 0));
+    }
+
+    private void SetMax()
+    {
+        var coins = GS.GetAmount("coins");
+        _exchangeAmount = Math.Max(0, Math.Round(coins, 0));
+    }
+
+    private void ClearAmount() { _exchangeAmount = 0; _exchangeMsg = string.Empty; }
+
+    private void DoExchange()
+    {
+        var amt = Math.Max(0, Math.Floor(_exchangeAmount));
+
+        if (amt <= 0)
+        {
+            _exchangeMsg = "Enter an amount greater than 0.";
+            return;
+        }
+        if (!GS.ExchangeCoinsToChips((int)amt))
+        {
+            _exchangeMsg = "Not enough coins.";
+            return;
+        }
+        _exchangeMsg = $"Exchanged {amt:0} Coins → {amt:0} Chips.";
+        _exchangeAmount = 0;
+        StateHasChanged();
+    }
+        // --- Coin Flip state (UI only) ---
+    private int _cfAmount = 10;
+    private bool _cfPickHeads = true;
+    private string _cfMsg = string.Empty;
+
+    private RenderFragment CoinFlipView => @<div class="card p-3">
+        <h4>Coin Flip</h4>
+
+        <div class="mb-2">
+            <strong>Chips:</strong> @Format(GS.GetAmount("chips"))
+        </div>
+
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <input type="number" min="1" step="1" class="form-control" style="width:140px"
+                   @bind="_cfAmount" @bind:event="oninput" />
+            <button class="btn btn-outline-secondary" @onclick="() => _cfAmount = Math.Max(1, _cfAmount + 10)">+10</button>
+            <button class="btn btn-outline-secondary" @onclick="() => _cfAmount = Math.Max(1, _cfAmount + 50)">+50</button>
+            <button class="btn btn-outline-secondary" @onclick="() => _cfAmount = Math.Max(1, _cfAmount + 100)">+100</button>
+            <button class="btn btn-outline-secondary" @onclick="SetCfMax">Max</button>
+        </div>
+
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-outline-primary"
+                @onclick="() => _cfPickHeads = true">
+            Heads
+        </button>
+        <button class="btn btn-outline-primary"
+                @onclick="() => _cfPickHeads = false">
+            Tails
+        </button>
+    </div>
+
+@if (_cfPickHeads)
+    {
+    <div class="text-success fw-semibold mb-2">You have selected: Heads</div>
+    }
+    else
+{
+        <div class="text-danger fw-semibold mb-2">You have selected: Tails</div>
+}
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" @onclick="DoCoinFlip">Flip</button>
+            <button class="btn btn-outline-secondary" @onclick="() => { _cfMsg = string.Empty; }">Clear</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_cfMsg))
+        {
+            <div class="mt-2 small text-muted">@_cfMsg</div>
+        }
+    </div>;
+
+    private void SetCfMax()
+    {
+        _cfAmount = (int)Math.Max(1, Math.Floor(GS.GetAmount("chips")));
+    }
+
+    private void DoCoinFlip()
+    {
+        var amt = Math.Max(1, _cfAmount);
+        var placed = GS.TryCoinFlip(_cfPickHeads, amt, out var win, out var resultHeads);
+
+        if (!placed)
+        {
+            _cfMsg = "Not enough Chips or invalid amount.";
+            return;
+        }
+
+        _cfMsg = $"{(win ? "WIN" : "LOSS")} • Result: {(resultHeads ? "Heads" : "Tails")} • Bet: {amt:N0}";
+        StateHasChanged();
+    }
 }

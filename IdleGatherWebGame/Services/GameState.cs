@@ -20,6 +20,8 @@ namespace IdleGatherWebGame.Services
         public double OverallXpNeededThisLevel => RequiredOverallXp(OverallLevel);
         public double OverallXpToNextLevel => Math.Max(0, OverallXpNeededThisLevel - OverallXp);
         private const int CurrentSaveVersion = 1;
+        // House edge for casino games (percentage of losing bias)
+        private const double CasinoHouseEdge = 0.02; // Example: 0.02 = 2% edge → player wins ~49% of flips
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -409,14 +411,19 @@ namespace IdleGatherWebGame.Services
         // ---------- Private helpers ----------
         private void Add(string id, int amount)
         {
-            if (!_resources.TryGetValue(id, out var res))
+            if (!_resources.TryGetValue(id, out var r))
             {
-                // fallback entry to avoid crashes if a new item wasn't registered
-                _resources[id] = new Resource(id, IdToNice(id), "❓", 0);
-                res = _resources[id];
+                // NEW: build from ItemRegistry if possible
+                if (ItemRegistry.TryGet(id, out var meta))
+                    r = new Resource(meta.Id, meta.Name, meta.Icon, 0);
+                else
+                    r = new Resource(id, IdToNice(id), "❓", 0);
+
+                _resources[id] = r;
             }
 
-            _resources[id] = res with { Amount = Math.Max(0, Math.Round(res.Amount + amount, 0)) };
+            var newAmt = Math.Max(0, r.Amount + amount);
+            _resources[id] = r with { Amount = newAmt };
         }
 
         private static string NiceUnitFor(string id)
@@ -533,14 +540,23 @@ namespace IdleGatherWebGame.Services
             // --- Resources from save ---
             foreach (var kv in data.Resources)
             {
-                double amt = Math.Max(0, Math.Round(kv.Value, 0));
-                if (_resources.TryGetValue(kv.Key, out var r))
+                var id = kv.Key;
+                var amt = Math.Max(0, Math.Round(kv.Value, 0));
+
+                // Prefer authoritative metadata from ItemRegistry
+                if (ItemRegistry.TryGet(id, out var meta))
                 {
-                    _resources[kv.Key] = r with { Amount = amt };
+                    _resources[id] = new Resource(meta.Id, meta.Name, meta.Icon, amt);
+                }
+                else if (_resources.TryGetValue(id, out var existing))
+                {
+                    // Keep existing metadata if we don't know the item in the registry
+                    _resources[id] = existing with { Amount = amt };
                 }
                 else
                 {
-                    _resources[kv.Key] = new Resource(kv.Key, IdToNice(kv.Key), "❓", amt);
+                    // Last-resort fallback for unknown ids
+                    _resources[id] = new Resource(id, IdToNice(id), "❓", amt);
                 }
             }
 
@@ -726,5 +742,64 @@ namespace IdleGatherWebGame.Services
             "tree_7" => "log_t7",
             _ => "log_t1",
         };
+        public bool ExchangeCoinsToChips(int amount)
+        {
+            amount = Math.Max(0, amount);
+            if (amount == 0) return false;
+
+            var coins = GetAmount("coins");
+            if (coins < amount) return false;
+
+            // Use the private Add(...) safely from inside GameState
+            Add("coins", -amount);
+            Add("chips", amount);
+
+            PushToast("🎰", $"Exchanged {amount:0} Coins → {amount:0} Chips");
+            OnChange?.Invoke();
+            return true;
+        }
+        // Coinflip: bet `amount` Chips on heads/tails. Returns false if bet not placed.
+        public bool TryCoinFlip(bool pickHeads, int amount, out bool win, out bool resultHeads)
+        {
+            win = false;
+            resultHeads = false;
+
+            amount = Math.Max(0, amount);
+            if (amount <= 0) return false;
+
+            var chips = GetAmount("chips");
+            if (chips < amount) return false;
+
+            // take the bet
+            Add("chips", -amount);
+
+            // Flip with a small house edge (player wins slightly less than 50%)
+            double roll = Random.Shared.NextDouble();
+
+            // By default, heads wins if roll < 0.5
+            // To add house edge, shift threshold a bit against the player
+            double threshold = 0.5 - (CasinoHouseEdge / 2);
+
+            // Example: with 2% edge, threshold = 0.49 (so 49% win chance)
+            resultHeads = roll < threshold ? true : false;
+
+            // Player wins only if their choice matches resultHeads
+            win = (pickHeads == resultHeads);
+
+            if (win)
+            {
+                // pay 2x (stake * 2). Since stake was already deducted, this nets +amount.
+                Add("chips", amount * 2);
+                PushToast("🪙", $"You won! {amount * 2:0} Chips paid. ({(resultHeads ? "Heads" : "Tails")})");
+            }
+            else
+            {
+                PushToast("🎲", $"You lost {amount:0} Chips. ({(resultHeads ? "Heads" : "Tails")})");
+            }
+
+            OnChange?.Invoke();
+            return true;
+        }
+
     }
 }
