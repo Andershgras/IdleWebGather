@@ -13,10 +13,6 @@ public static class ItemRegistry
     // Single source of truth
     private static readonly Dictionary<string, ItemMeta> _byId = new()
     {
-        // Legacy
-        ["wood"] = new("wood", "Log", "Resources", "🌲", 2),
-        ["stone"] = new("stone", "Stone", "Resources", "🪨", null), 
-        ["keys"] = new("keys", "Keys", "Currencies", "🗝️", null), 
         // Base
         ["coins"] = new("coins", "Coins", "Currencies", "🪙", null), //Main Currency
         // Logs
