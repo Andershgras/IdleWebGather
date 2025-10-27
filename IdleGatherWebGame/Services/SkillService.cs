@@ -44,7 +44,7 @@ public sealed class SkillService : ISkillService
 
         foreach (var (id, data) in saved)
         {
-            var s = Get(id);        // ensure it exists
+            var s = Get(id); // ensure it exists
             s.Restore(data.Level, data.Xp);
         }
     }

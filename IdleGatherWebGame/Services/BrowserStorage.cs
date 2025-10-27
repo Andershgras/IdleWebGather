@@ -1,5 +1,4 @@
-﻿// Services/BrowserStorage.cs
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.JSInterop;
 
 namespace IdleGatherWebGame.Services

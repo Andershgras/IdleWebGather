@@ -9,19 +9,37 @@ namespace IdleGatherWebGame.Services
 {
     public sealed class GameState : IDisposable
     {
-        // ---------- Public types used by UI ----------
         public sealed record Toast(string Icon, string Text, DateTimeOffset ExpireAt);
-        // === Overall Player Level (runtime) ===
         public int OverallLevel { get; private set; } = 1;
-        /** XP stored as "into this level" (not lifetime). */
         public double OverallXp { get; private set; } = 0;
         public ISkillService Skills { get; }
-
         public double OverallXpNeededThisLevel => RequiredOverallXp(OverallLevel);
         public double OverallXpToNextLevel => Math.Max(0, OverallXpNeededThisLevel - OverallXp);
         private const int CurrentSaveVersion = 1;
-        // House edge for casino games (percentage of losing bias)
-        private const double CasinoHouseEdge = 0.02; // Example: 0.02 = 2% edge → player wins ~49% of flips
+        private const double CasinoHouseEdge = 0.02; // House edge for casino games (percentage of losing bias)
+        private readonly IBrowserStorage? _storage;
+        private enum JobType { Woodcutting, Mining, Crafting, Smelting }
+        public bool AutosaveEnabled { get; set; } = true;
+        public event Action? OnChange;
+        public string? PlayerName { get; private set; }
+        public IReadOnlyDictionary<string, Resource> Resources => _resources;
+        public IReadOnlyList<WorkNode> TreeNodes => _trees;
+        public IReadOnlyList<WorkNode> OreNodes => _ores;
+        public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
+        public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
+        public Skill Woodcutting => Skills.Get(SkillIds.Woodcutting);
+        public Skill Crafting => Skills.Get(SkillIds.Crafting);
+        public Skill Mining => Skills.Get(SkillIds.Mining);
+        public Skill Smelting => Skills.Get(SkillIds.Smelting);
+        public Skill Casino => Skills.Get(SkillIds.Casino);
+        public bool JobRunning => _job is not null;
+        public double Progress01 => _job?.Progress01 ?? 0;
+        public double SecondsRemaining => _job is null ? 0 : Math.Max(0, (_job.Duration - _job.Elapsed).TotalSeconds);
+        public int? ActiveCyclesRemaining => _job?.CyclesRemaining;
+        public WorkNode? ActiveNode => _job?.Node;
+        public CraftRecipe? ActiveRecipe => _job?.Recipe;
+        public IReadOnlyList<Toast> Toasts => _toasts;
+        public int DebugTicks { get; private set; }
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -32,11 +50,9 @@ namespace IdleGatherWebGame.Services
             public List<Input> Inputs { get; set; } = new();
             public List<Output> Outputs { get; set; } = new();
             public double XpPerCycle { get; set; } = 5;
-
             public sealed record Input(string ResourceId, int Amount);
             public sealed record Output(string ResourceId, int Amount);
         }
-
         // Tiny data for generic gathering
         private sealed record GatherSpec(
             string Id,               // e.g., "woodcut:tree_1" or "mining:ore_1"
@@ -44,8 +60,6 @@ namespace IdleGatherWebGame.Services
             string OutputResourceId, // resource granted per cycle
             Skill Skill              // which skill receives XP
         );
-
-        private enum JobType { Woodcutting, Mining, Crafting, Smelting }
 
         // ---------- Save/load ----------
         private const string SaveKey = "idleGather.save.v1";
@@ -57,8 +71,6 @@ namespace IdleGatherWebGame.Services
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        private readonly IBrowserStorage? _storage; // set via ctor with DI
-        public bool AutosaveEnabled { get; set; } = true;
         private sealed class ActiveJob
         {
             public JobType Type { get; }
@@ -79,7 +91,6 @@ namespace IdleGatherWebGame.Services
                 CyclesRemaining = (cycles.HasValue && cycles.Value <= 0) ? null : cycles;
                 Elapsed = TimeSpan.Zero;
             }
-
             public void Advance(TimeSpan dt) => Elapsed += dt;
             public bool Done => Elapsed >= Duration;
 
@@ -93,33 +104,6 @@ namespace IdleGatherWebGame.Services
             public double Progress01 => Math.Clamp(Elapsed.TotalSeconds / Duration.TotalSeconds, 0, 1);
             public bool HasMoreCycles => !CyclesRemaining.HasValue || CyclesRemaining.Value > 0;
         }
-
-        // ---------- Public surface consumed by UI ----------
-        public event Action? OnChange;
-
-        public string? PlayerName { get; private set; }
-
-        public IReadOnlyDictionary<string, Resource> Resources => _resources;
-        public IReadOnlyList<WorkNode> TreeNodes => _trees;
-        public IReadOnlyList<WorkNode> OreNodes => _ores;
-        public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
-        public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
-
-        public Skill Woodcutting => Skills.Get(SkillIds.Woodcutting);
-        public Skill Crafting => Skills.Get(SkillIds.Crafting);
-        public Skill Mining => Skills.Get(SkillIds.Mining);
-        public Skill Smelting => Skills.Get(SkillIds.Smelting);
-        public Skill Casino => Skills.Get(SkillIds.Casino);
-
-        public bool JobRunning => _job is not null;
-        public double Progress01 => _job?.Progress01 ?? 0;
-        public double SecondsRemaining
-            => _job is null ? 0 : Math.Max(0, (_job.Duration - _job.Elapsed).TotalSeconds);
-
-        public int? ActiveCyclesRemaining => _job?.CyclesRemaining;
-        public WorkNode? ActiveNode => _job?.Node;
-        public CraftRecipe? ActiveRecipe => _job?.Recipe;
-
         public string CurrentActivity => _job switch
         {
             null => "Doing nothing…",
@@ -138,10 +122,6 @@ namespace IdleGatherWebGame.Services
                                       $"{Math.Round(j.Recipe!.XpPerCycle)} XP",
             _ => ""
         };
-
-        public IReadOnlyList<Toast> Toasts => _toasts;
-        public int DebugTicks { get; private set; }
-
         // ---------- Construction / Timer ----------
         public GameState(IBrowserStorage storage)
         {

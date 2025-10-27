@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using IdleGatherWebGame.Services; // For GameState.CraftRecipe
+using IdleGatherWebGame.Services;
 
 namespace IdleGatherWebGame.Models;
 
@@ -30,7 +30,6 @@ public static class RecipeRegistry
             Outputs = new() { new("plank_t2", 1) },
             XpPerCycle = 10
         },
-        // Add more tiers as needed (T3–T7)
     };
 
     public static readonly List<GameState.CraftRecipe> Smelting = new()
