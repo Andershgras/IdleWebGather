@@ -82,9 +82,6 @@
                     <div class="tip-pop">
                         <div class="tip-row"><span>Total XP</span><strong>@GS.OverallXp.ToString("0")</strong></div>
                         <div class="tip-row"><span>To next</span><strong>@GS.OverallXpToNextLevel.ToString("0")</strong></div>
-                        <div class="mini-progress" style="margin-top:6px;">
-                            <div style="width:@(Math.Clamp(GS.OverallXp / GS.OverallXpNeededThisLevel * 100, 0, 100))%"></div>
-                        </div>
                     </div>
                 }
             </div>
