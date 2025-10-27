@@ -242,8 +242,12 @@
                     @foreach (var t in GS.TreeNodes)
                     {
                         var locked = !GS.CanChop(t);
-                        <div class="tree-card @(locked ? "locked" : "")"
-                             @onclick="@(() => { if (!locked) { selectedTree = t; showInfo = true; startMsg = ""; } })">
+                        var isActive = GS.ActiveGatherNodeId == t.Id;   // ← simple, robust
+
+                        <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
+                             @onclick="@(() => { if (!locked) { selectedTree = t; showInfo = true; startMsg = ""; } })"
+                             style="@(isActive ? "outline:2px solid #0d6efd; background:rgba(13,110,253,.06);" : null)">
+                            @* visual fallback *@
                             <div class="tree-icon">@t.Icon</div>
                             <div class="tree-name">@t.Name</div>
                             <div class="tree-req">Req Lv @t.RequiredLevel</div>
@@ -629,7 +633,10 @@
             @foreach (var r in GS.CraftingRecipes)
             {
                 var locked = GS.Crafting.Level < r.RequiredLevel;
-                <div class="tree-card @(locked ? "locked" : "")"
+                var isActive = GS.ActiveRecipeId == r.Id;
+
+                <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
+                     style="@(isActive ? "outline:2px solid #0d6efd; background:rgba(13,110,253,.06);" : null)"
                      @onclick="@(() => { if (!locked) { selectedRecipe = r; showCraft = true; craftMsg = ""; } })">
                     <div class="tree-icon">@r.Icon</div>
                     <div class="tree-name">@r.Name</div>
@@ -723,50 +730,59 @@
     string mineMsg = "";
 
     RenderFragment MiningArea() => __builder =>
-    {
-        <h2>Mining</h2>
-        <div class="tree-grid">
-            @foreach (var n in GS.OreNodes)
-            {
-                var locked = !GS.CanMine(n);
-                <div class="tree-card @(locked ? "locked" : "")"
-                     @onclick="@(() => { if (!locked) { selectedOre = n; showOre = true; mineMsg = ""; } })">
-                    <div class="tree-icon">@n.Icon</div>
-                    <div class="tree-name">@n.Name</div>
-                    <div class="tree-req">Req Lv @n.RequiredLevel</div>
-                </div>
-            }
-        </div>
+{
+    <h2>Mining</h2>
 
-        @if (showOre && selectedOre is not null)
+    <div class="tree-grid">
+        @foreach (var n in GS.OreNodes)
         {
-            var n = selectedOre!;
-            <div class="info card">
-                <h3>@n.Name</h3>
-                <div class="kv"><span>Requires:</span> <span>Mining Lv @n.RequiredLevel</span></div>
-                <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) ore • @Math.Round(n.XpPerCycle) XP</span></div>
-                <div class="kv"><span>Duration:</span> <span>@n.Duration.TotalSeconds.ToString("0.#")s</span></div>
+            var locked = !GS.CanMine(n);
+            var isActive = GS.ActiveGatherNodeId == n.Id; // highlight if this ore is being mined
 
-                <div class="row gap">
-                    <label>Mine (0 = ∞):</label>
-                    <input class="input small" type="number" min="0" @bind="mineCount" @bind:event="oninput" />
-                </div>
-
-                @if (!string.IsNullOrEmpty(mineMsg))
-                {
-                    <p class="small" style="color:#f7b3b3">@mineMsg</p>
-                }
-
-                <div class="row gap">
-                    <button class="btn" type="button" disabled="@(!GS.CanMine(n))"
-                            @onclick="@(() => TryStartMine(n))">
-                        Start
-                    </button>
-                    <button class="btn ghost" type="button" @onclick="@(() => showOre = false)">Close</button>
-                </div>
+            <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
+                 style="@(isActive ? "outline:2px solid #0d6efd; background:rgba(13,110,253,.06);" : null)"
+                 @onclick="@(() => { if (!locked) { selectedOre = n; showOre = true; mineMsg = ""; } })">
+                <div class="tree-icon">@n.Icon</div>
+                <div class="tree-name">@n.Name</div>
+                <div class="tree-req">Req Lv @n.RequiredLevel</div>
             </div>
         }
-    };
+    </div>
+
+    @if (showOre && selectedOre is not null)
+    {
+        var n = selectedOre!;
+        <div class="info card">
+            <h3>@n.Name</h3>
+            <div class="kv"><span>Requires:</span> <span>Mining Lv @n.RequiredLevel</span></div>
+            <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) ore • @Math.Round(n.XpPerCycle) XP</span></div>
+            <div class="kv"><span>Duration:</span> <span>@n.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+            <div class="row gap">
+                <label>Mine (0 = ∞):</label>
+                <input class="input small" type="number" min="0" @bind="mineCount" @bind:event="oninput" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(mineMsg))
+            {
+                <p class="small" style="color:#f7b3b3">@mineMsg</p>
+            }
+
+            <div class="row gap">
+                <button class="btn" type="button"
+                        disabled="@(!GS.CanMine(n))"
+                        @onclick="@(() => TryStartMine(n))">
+                    Start
+                </button>
+                <button class="btn ghost" type="button"
+                        @onclick="@(() => showOre = false)">
+                    Close
+                </button>
+            </div>
+        </div>
+    }
+};
+
 
     bool TryStartMine(WorkNode n)
     {
@@ -786,52 +802,56 @@
     string smeltMsg = "";
 
     RenderFragment SmeltingArea() => __builder =>
-    {
-        <h2>Smelting</h2>
-        <div class="tree-grid">
-            @foreach (var r in GS.SmeltingRecipes)
-            {
-                var locked = GS.Smelting.Level < r.RequiredLevel;
-                <div class="tree-card @(locked ? "locked" : "")"
-                     @onclick="@(() => { if (!locked) { selectedSmelt = r; showSmelt = true; smeltMsg = ""; } })">
-                    <div class="tree-icon">@r.Icon</div>
-                    <div class="tree-name">@r.Name</div>
-                    <div class="tree-req">Req Lv @r.RequiredLevel</div>
-                </div>
-            }
-        </div>
-
-        @if (showSmelt && selectedSmelt is not null)
+{
+    <h2>Smelting</h2>
+    <div class="tree-grid">
+        @foreach (var r in GS.SmeltingRecipes)
         {
-            var r = selectedSmelt!;
-            <div class="info card">
-                <h3>@r.Name</h3>
-                <div class="kv"><span>Requires:</span> <span>Smelting Lv @r.RequiredLevel</span></div>
-                <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
-                <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
-                <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+            var locked = GS.Smelting.Level < r.RequiredLevel;
+            var isActive = GS.ActiveRecipeId == r.Id;  // highlight if this recipe is currently running
 
-                <div class="row gap">
-                    <label>Smelt (0 = ∞):</label>
-                    <input class="input small" type="number" min="0" @bind="smeltCount" @bind:event="oninput" />
-                </div>
-
-                @if (!string.IsNullOrEmpty(smeltMsg))
-                {
-                    <p class="small" style="color:#f7b3b3">@smeltMsg</p>
-                }
-
-                <div class="row gap">
-                    <button class="btn" type="button"
-                            disabled="@(GS.Smelting.Level < r.RequiredLevel || !HasInputsOnce(r))"
-                            @onclick="@(() => TryStartSmelt(r))">
-                        Start
-                    </button>
-                    <button class="btn ghost" type="button" @onclick="@(() => showSmelt = false)">Close</button>
-                </div>
+            <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
+                 style="@(isActive ? "outline:2px solid #0d6efd; background:rgba(13,110,253,.06);" : null)"
+                 @onclick="@(() => { if (!locked) { selectedSmelt = r; showSmelt = true; smeltMsg = ""; } })">
+                <div class="tree-icon">@r.Icon</div>
+                <div class="tree-name">@r.Name</div>
+                <div class="tree-req">Req Lv @r.RequiredLevel</div>
             </div>
         }
-    };
+    </div>
+
+    @if (showSmelt && selectedSmelt is not null)
+    {
+        var r = selectedSmelt!;
+        <div class="info card">
+            <h3>@r.Name</h3>
+            <div class="kv"><span>Requires:</span> <span>Smelting Lv @r.RequiredLevel</span></div>
+            <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
+            <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
+            <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+            <div class="row gap">
+                <label>Smelt (0 = ∞):</label>
+                <input class="input small" type="number" min="0" @bind="smeltCount" @bind:event="oninput" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(smeltMsg))
+            {
+                <p class="small" style="color:#f7b3b3">@smeltMsg</p>
+            }
+
+            <div class="row gap">
+                <button class="btn" type="button"
+                        disabled="@(GS.Smelting.Level < r.RequiredLevel || !HasInputsOnce(r))"
+                        @onclick="@(() => TryStartSmelt(r))">
+                    Start
+                </button>
+                <button class="btn ghost" type="button" @onclick="@(() => showSmelt = false)">Close</button>
+            </div>
+        </div>
+    }
+};
+
 
     bool TryStartSmelt(IdleGatherWebGame.Services.GameState.CraftRecipe r)
     {

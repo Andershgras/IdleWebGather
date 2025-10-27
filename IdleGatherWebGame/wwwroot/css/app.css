@@ -798,6 +798,12 @@ code {
     background: var(--accent);
     border-radius: 999px;
 }
+.node-card.active-gather {
+    border-color: #0d6efd; /* primary */
+    box-shadow: 0 0 0 2px rgba(13,110,253,.2);
+    background: rgba(13,110,253,.06);
+    transition: box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
 
 
 

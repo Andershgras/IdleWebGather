@@ -49,6 +49,8 @@ namespace IdleGatherWebGame.Services
         private List<CraftRecipe> _smelt = [];
         private ActiveJob? _job;
         private readonly Timer _timer;
+        public string? ActiveGatherNodeId => _job?.Node?.Id;
+        public string? ActiveRecipeId => _job?.Recipe?.Id;
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -730,6 +732,5 @@ namespace IdleGatherWebGame.Services
             OnChange?.Invoke();
             return true;
         }
-
     }
 }
