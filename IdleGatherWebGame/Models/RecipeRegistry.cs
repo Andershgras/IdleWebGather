@@ -15,8 +15,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 1,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("log_t1", 2) },
-            Outputs = new() { new("plank_t1", 1) },
+            Inputs = [ new("log_t1", 2) ],
+            Outputs = [ new("plank_t1", 1) ],
             XpPerCycle = 6
         },
         new GameState.CraftRecipe
@@ -26,8 +26,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 5,
             Duration = TimeSpan.FromSeconds(5),
-            Inputs = new() { new("log_t2", 2) },
-            Outputs = new() { new("plank_t2", 1) },
+            Inputs = [ new("log_t2", 2) ],
+            Outputs = [ new("plank_t2", 1) ],
             XpPerCycle = 10
         },
         new GameState.CraftRecipe
@@ -37,8 +37,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 10,
             Duration = TimeSpan.FromSeconds(6),
-            Inputs = new() { new("log_t3", 2) },
-            Outputs = new() { new("plank_t3", 1) },
+            Inputs = [ new("log_t3", 2) ],
+            Outputs = [ new("plank_t3", 1) ],
             XpPerCycle = 14
         },
         new GameState.CraftRecipe
@@ -48,8 +48,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 15,
             Duration = TimeSpan.FromSeconds(7),
-            Inputs = new() { new("log_t4", 2) },
-            Outputs = new() { new("plank_t4", 1) },
+            Inputs = [ new("log_t4", 2) ],
+            Outputs = [ new("plank_t4", 1) ],
             XpPerCycle = 18
         },
         new GameState.CraftRecipe
@@ -59,8 +59,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 20,
             Duration = TimeSpan.FromSeconds(8),
-            Inputs = new() { new("log_t5", 2) },
-            Outputs = new() { new("plank_t5", 1) },
+            Inputs = [ new("log_t5", 2) ],
+            Outputs = [ new("plank_t5", 1) ],
             XpPerCycle = 22
         },
         new GameState.CraftRecipe
@@ -70,8 +70,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 25,
             Duration = TimeSpan.FromSeconds(9),
-            Inputs = new() { new("log_t6", 2) },
-            Outputs = new() { new("plank_t6", 1) },
+            Inputs = [ new("log_t6", 2) ],
+            Outputs = [ new("plank_t6", 1) ],
             XpPerCycle = 26
         },
         new GameState.CraftRecipe
@@ -81,8 +81,8 @@ public static class RecipeRegistry
             Icon = "🪵",
             RequiredLevel = 30,
             Duration = TimeSpan.FromSeconds(10),
-            Inputs = new() { new("log_t7", 2) },
-            Outputs = new() { new("plank_t7", 1) },
+            Inputs = [ new("log_t7", 2) ],
+            Outputs = [ new("plank_t7", 1) ],
             XpPerCycle = 30
         },
     };
@@ -107,8 +107,8 @@ public static class RecipeRegistry
             Icon = "🔩",
             RequiredLevel = 8,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("iron_ore", 2) },
-            Outputs = new() { new("iron_bar", 1) },
+            Inputs = [ new("iron_ore", 2) ],
+            Outputs = [ new("iron_bar", 1) ],
             XpPerCycle = 12
         },
         new GameState.CraftRecipe
@@ -118,8 +118,8 @@ public static class RecipeRegistry
             Icon = "🔩",
             RequiredLevel = 15,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("silver_ore", 2) },
-            Outputs = new() { new("silver_bar", 1) },
+            Inputs = [ new("silver_ore", 2) ],
+            Outputs = [ new("silver_bar", 1) ],
             XpPerCycle = 16
         },
         new GameState.CraftRecipe
@@ -129,8 +129,8 @@ public static class RecipeRegistry
             Icon = "🔩",
             RequiredLevel = 20,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("gold_ore", 2) },
-            Outputs = new() { new("gold_bar", 1) },
+            Inputs = [ new("gold_ore", 2) ],
+            Outputs = [ new("gold_bar", 1) ],
             XpPerCycle = 20
         },
         new GameState.CraftRecipe
@@ -140,8 +140,8 @@ public static class RecipeRegistry
             Icon = "🔩",
             RequiredLevel = 30,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("mithril_ore", 3) },
-            Outputs = new() { new("mith_bar", 1) },
+            Inputs = [ new("mithril_ore", 3) ],
+            Outputs = [ new("mith_bar", 1) ],
             XpPerCycle = 28
         },
         new GameState.CraftRecipe
@@ -151,8 +151,8 @@ public static class RecipeRegistry
             Icon = "🔩",
             RequiredLevel = 40,
             Duration = TimeSpan.FromSeconds(4),
-            Inputs = new() { new("adamant_ore", 3) },
-            Outputs = new() { new("adam_bar", 1) },
+            Inputs = [ new("adamant_ore", 3) ],
+            Outputs = [ new("adam_bar", 1) ],
             XpPerCycle = 34
         },
     };

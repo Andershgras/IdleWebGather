@@ -40,6 +40,15 @@ namespace IdleGatherWebGame.Services
         public CraftRecipe? ActiveRecipe => _job?.Recipe;
         public IReadOnlyList<Toast> Toasts => _toasts;
         public int DebugTicks { get; private set; }
+        private const int TickMs = 200; // 5 ticks/sec for smoother bars
+        private readonly List<Toast> _toasts = [];
+        private Dictionary<string, Resource> _resources = [];
+        private List<WorkNode> _trees = [];
+        private List<WorkNode> _ores = [];
+        private List<CraftRecipe> _recipes = [];
+        private List<CraftRecipe> _smelt = [];
+        private ActiveJob? _job;
+        private readonly Timer _timer;
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -47,8 +56,8 @@ namespace IdleGatherWebGame.Services
             public string Icon { get; set; } = "🛠️";
             public int RequiredLevel { get; set; }
             public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(4);
-            public List<Input> Inputs { get; set; } = new();
-            public List<Output> Outputs { get; set; } = new();
+            public List<Input> Inputs { get; set; } = [];
+            public List<Output> Outputs { get; set; } = [];
             public double XpPerCycle { get; set; } = 5;
             public sealed record Input(string ResourceId, int Amount);
             public sealed record Output(string ResourceId, int Amount);
@@ -60,7 +69,6 @@ namespace IdleGatherWebGame.Services
             string OutputResourceId, // resource granted per cycle
             Skill Skill              // which skill receives XP
         );
-
         // ---------- Save/load ----------
         private const string SaveKey = "idleGather.save.v1";
         private bool _loadedFromLocal = false;
@@ -122,21 +130,19 @@ namespace IdleGatherWebGame.Services
                                       $"{Math.Round(j.Recipe!.XpPerCycle)} XP",
             _ => ""
         };
-        // ---------- Construction / Timer ----------
         public GameState(IBrowserStorage storage)
         {
             _storage = storage;
 
             // --- Initialize Skills (new) ---
             Skills = new SkillService();
-            Skills.EnsureKnownSkills(new[]
-            {
-        (SkillIds.Woodcutting, "Woodcutting"),
-        (SkillIds.Crafting,    "Crafting"),
-        (SkillIds.Mining,      "Mining"),
-        (SkillIds.Smelting,    "Smelting"),
-        (SkillIds.Casino,      "Casino"),
-    });
+            Skills.EnsureKnownSkills([
+                (SkillIds.Woodcutting, "Woodcutting"),
+                (SkillIds.Crafting,    "Crafting"),
+                (SkillIds.Mining,      "Mining"),
+                (SkillIds.Smelting,    "Smelting"),
+                (SkillIds.Casino,      "Casino"),
+            ]);
 
             InitDefaults();
             _timer = new Timer(_ => Tick(TimeSpan.FromMilliseconds(TickMs)), null, 250, TickMs);
@@ -145,14 +151,13 @@ namespace IdleGatherWebGame.Services
         {
             // --- Initialize Skills (new) ---
             Skills = new SkillService();
-            Skills.EnsureKnownSkills(new[]
-            {
-        (SkillIds.Woodcutting, "Woodcutting"),
-        (SkillIds.Crafting,    "Crafting"),
-        (SkillIds.Mining,      "Mining"),
-        (SkillIds.Smelting,    "Smelting"),
-        (SkillIds.Casino,      "Casino"),
-    });
+            Skills.EnsureKnownSkills([
+                (SkillIds.Woodcutting, "Woodcutting"),
+                (SkillIds.Crafting,    "Crafting"),
+                (SkillIds.Mining,      "Mining"),
+                (SkillIds.Smelting,    "Smelting"),
+                (SkillIds.Casino,      "Casino"),
+            ]);
 
             InitDefaults();
             _timer = new Timer(_ => Tick(TimeSpan.FromMilliseconds(TickMs)), null, 250, TickMs);
@@ -163,7 +168,6 @@ namespace IdleGatherWebGame.Services
             _timer?.Dispose();
         }
 
-        // ---------- Player ----------
         public void CreateCharacter(string name)
         {
             name = (name ?? "").Trim();
@@ -234,7 +238,6 @@ namespace IdleGatherWebGame.Services
             OnChange?.Invoke();
         }
 
-        // ---------- Inventory helpers ----------
         public double GetAmount(string id)
             => _resources.TryGetValue(id, out var res) ? res.Amount : 0;
 
@@ -279,7 +282,6 @@ namespace IdleGatherWebGame.Services
             return true;
         }
 
-        // ---------- Tick / job engine ----------
         private void Tick(TimeSpan dt)
         {
             DebugTicks++;
@@ -287,7 +289,6 @@ namespace IdleGatherWebGame.Services
             _toasts.RemoveAll(t => t.ExpireAt <= DateTimeOffset.UtcNow);
 
             if (_job is null) { OnChange?.Invoke(); return; }
-
             // Generic gathering (woodcutting, mining)
             if (_job.Gather is not null)
             {
@@ -314,7 +315,6 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
                 return;
             }
-
             // Crafting
             if (_job.Type == JobType.Crafting && _job.Recipe is not null)
             {
@@ -349,7 +349,6 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
                 return;
             }
-
             // Smelting
             if (_job.Type == JobType.Smelting && _job.Recipe is not null)
             {
@@ -382,18 +381,15 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
                 return;
             }
-
             // Unknown job payload — clear
             _job = null;
             OnChange?.Invoke();
         }
 
-        // ---------- Private helpers ----------
         private void Add(string id, int amount)
         {
             if (!_resources.TryGetValue(id, out var r))
             {
-                // NEW: build from ItemRegistry if possible
                 if (ItemRegistry.TryGet(id, out var meta))
                     r = new Resource(meta.Id, meta.Name, meta.Icon, 0);
                 else
@@ -409,7 +405,7 @@ namespace IdleGatherWebGame.Services
         private static string NiceUnitFor(string id)
         {
             if (id.Contains("ore")) return "ore";
-            if (id.StartsWith("log_") || id == "wood") return "logs"; // CHANGED
+            if (id.StartsWith("log_") || id == "wood") return "logs";
             if (id.Contains("bar")) return "bars";
             if (id.Contains("plank")) return "planks";
             return "units";
@@ -430,12 +426,10 @@ namespace IdleGatherWebGame.Services
         // ---------- Content / data ----------
         private void InitDefaults()
         {
-            // Build resources from ItemRegistry (names/icons centralized)
             _resources = ItemRegistry.All.ToDictionary(
                 m => m.Id,
                 m => new Resource(m.Id, m.Name, m.Icon, 0)
             );
-            // Woodcutting: build trees from TreeRegistry
             _trees = TreeRegistry.All
                 .Select(t => new WorkNode
                 {
@@ -463,36 +457,17 @@ namespace IdleGatherWebGame.Services
                     Duration = TimeSpan.FromSeconds(o.DurationSeconds)
                 })
                 .ToList();
-            // Crafting recipes
             _recipes = RecipeRegistry.Crafting.ToList();
-
-            // Smelting recipes
             _smelt = RecipeRegistry.Smelting.ToList();
         }
-
-        // ---------- Fields ----------
-        private const int TickMs = 200; // 5 ticks/sec for smoother bars
-        private readonly List<Toast> _toasts = new();
-        private Dictionary<string, Resource> _resources = new();
-        private List<WorkNode> _trees = new();
-        private List<WorkNode> _ores = new();
-        private List<CraftRecipe> _recipes = new();
-        private List<CraftRecipe> _smelt = new();
-        private ActiveJob? _job;
-        private readonly Timer _timer;
-
-        // ---------- Save/load implementation ----------
         private PlayerData ToPlayerData()
         {
             var data = new PlayerData
             {
                 Name = PlayerName ?? "Player",
                 SaveVersion = CurrentSaveVersion,
-                // resources and skills
                 Resources = Resources.ToDictionary(kv => kv.Key, kv => kv.Value.Amount),
                 Skills = this.Skills.ToSaveDictionary(),
-
-                // NEW: overall progression (persist runtime values)
                 OverallLevel = this.OverallLevel,
                 OverallXp = this.OverallXp,
 
@@ -517,7 +492,7 @@ namespace IdleGatherWebGame.Services
         {
             PlayerName = string.IsNullOrWhiteSpace(data.Name) ? "Player" : data.Name;
 
-            // --- Resources from save ---
+            // Resources from save
             foreach (var kv in data.Resources)
             {
                 var id = kv.Key;
@@ -539,24 +514,20 @@ namespace IdleGatherWebGame.Services
                     _resources[id] = new Resource(id, IdToNice(id), "❓", amt);
                 }
             }
-
-            // --- Overall progression ---
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
 
             MigrateIfNeeded(data);
             // Ensure the known skills exist, then restore saved values
-            Skills.EnsureKnownSkills(new[]
-            {
+            Skills.EnsureKnownSkills([
                 (SkillIds.Woodcutting, "Woodcutting"),
                 (SkillIds.Crafting,    "Crafting"),
                 (SkillIds.Mining,      "Mining"),
                 (SkillIds.Smelting,    "Smelting"),
                 (SkillIds.Casino,      "Casino"),
-            });
+            ]);
             Skills.LoadFromDictionary(data.Skills);
 
-            // --- Active job (rebuild) ---
             _job = null;
             if (data.ActiveJob is { } aj)
             {
@@ -592,7 +563,6 @@ namespace IdleGatherWebGame.Services
                     }
                 }
             }
-
             // --- One-time migration: legacy "wood" -> "log_t1" ---
             if (_resources.TryGetValue("wood", out var legacy) && legacy.Amount > 0)
             {
@@ -617,7 +587,7 @@ namespace IdleGatherWebGame.Services
             string? json = null;
             try
             {
-                json = await _storage.GetAsync(SaveKey);  // calls storage.get
+                json = await _storage.GetAsync(SaveKey); // calls storage.get
             }
             catch (Microsoft.JSInterop.JSException)
             {
@@ -647,7 +617,6 @@ namespace IdleGatherWebGame.Services
             }
         }
 
-
         public async Task SaveToLocalAsync(bool force = false)
         {
             if (_storage is null || !AutosaveEnabled) return;
@@ -665,7 +634,6 @@ namespace IdleGatherWebGame.Services
             if (_storage is null) return;
             await _storage.RemoveAsync(SaveKey);
         }
-        // Overall XP methods
         public void GrantOverallXp(double amount)
         {
             if (amount <= 0) return;
@@ -678,7 +646,6 @@ namespace IdleGatherWebGame.Services
                 OverallXp -= OverallXpNeededThisLevel;
                 OverallLevel++;
 
-                // Optional: player feedback
                 PushToast("⬆️", $"Overall Level {OverallLevel}");
             }
             OnChange?.Invoke();
@@ -686,8 +653,6 @@ namespace IdleGatherWebGame.Services
         public static double RequiredOverallXp(int level)
         {
             if (level < 1) level = 1;
-            // Simple, tweakable curve:
-            // 100 + 50*(L-1)  → L1:100, L2:150, L3:200, ...
             return 100 + 50 * (level - 1);
         }
         private void MigrateIfNeeded(PlayerData data)
@@ -700,13 +665,6 @@ namespace IdleGatherWebGame.Services
                 // Ensure dictionaries exist
                 data.Resources ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                 data.Skills ??= new Dictionary<string, PlayerData.SkillData>(StringComparer.OrdinalIgnoreCase);
-
-                // Example of safe ID rename (ONLY if you actually renamed IDs):
-                // if (data.Resources.Remove("wood", out var amt))
-                // {
-                //     if (data.Resources.ContainsKey("log_t1")) data.Resources["log_t1"] += amt;
-                //     else data.Resources["log_t1"] = amt;
-                // }
 
                 data.SaveVersion = 1; // mark migrated
             }
@@ -730,7 +688,6 @@ namespace IdleGatherWebGame.Services
             var coins = GetAmount("coins");
             if (coins < amount) return false;
 
-            // Use the private Add(...) safely from inside GameState
             Add("coins", -amount);
             Add("chips", amount);
 
@@ -750,17 +707,11 @@ namespace IdleGatherWebGame.Services
             var chips = GetAmount("chips");
             if (chips < amount) return false;
 
-            // take the bet
             Add("chips", -amount);
 
             // Flip with a small house edge (player wins slightly less than 50%)
             double roll = Random.Shared.NextDouble();
-
-            // By default, heads wins if roll < 0.5
-            // To add house edge, shift threshold a bit against the player
             double threshold = 0.5 - (CasinoHouseEdge / 2);
-
-            // Example: with 2% edge, threshold = 0.49 (so 49% win chance)
             resultHeads = roll < threshold ? true : false;
 
             // Player wins only if their choice matches resultHeads
@@ -768,7 +719,6 @@ namespace IdleGatherWebGame.Services
 
             if (win)
             {
-                // pay 2x (stake * 2). Since stake was already deducted, this nets +amount.
                 Add("chips", amount * 2);
                 PushToast("🪙", $"You won! {amount * 2:0} Chips paid. ({(resultHeads ? "Heads" : "Tails")})");
             }

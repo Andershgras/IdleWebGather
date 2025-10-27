@@ -7,8 +7,8 @@ namespace IdleGatherWebGame.Models
     {
         public string Name { get; set; } = "";
         public int SaveVersion { get; set; } = 0;
-        public Dictionary<string, double> Resources { get; set; } = new();
-        public Dictionary<string, SkillData> Skills { get; set; } = new();
+        public Dictionary<string, double> Resources { get; set; } = [];
+        public Dictionary<string, SkillData> Skills { get; set; } = [];
         public ActiveJobSave? ActiveJob { get; set; }
         public DateTimeOffset LastSavedUtc { get; set; } = DateTimeOffset.UtcNow;
         public int OverallLevel { get; set; } = 1;

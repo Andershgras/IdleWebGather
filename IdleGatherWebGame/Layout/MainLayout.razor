@@ -480,9 +480,6 @@
         GS.CreateCharacter(rename);
     }
 
-    // ===========================
-    // Inventory model/helpers
-    // ===========================
     private class InvMeta
     {
         public string Id { get; }
@@ -507,11 +504,10 @@
 
     private readonly Dictionary<string, InvMeta> _invMeta = new()
     {
-        //Currency
+        // Currency
         ["chips"] = new InvMeta("chips", "Chips", "Currencies", IMG_COINS, "Casino chips used to play games."),
         ["coins"] = new InvMeta("coins", "Coins", "Currencies", IMG_COINS, "The main currency."),
-
-        // logs (NEW)
+        // Logs
         ["log_t1"] = new InvMeta("log_t1", "Log (T1)", "Resources", IMG_WOOD, "Common logs from shrubs."),
         ["log_t2"] = new InvMeta("log_t2", "Log (T2)", "Resources", IMG_WOOD, "Sturdy oak logs."),
         ["log_t3"] = new InvMeta("log_t3", "Log (T3)", "Resources", IMG_WOOD, "Willow logs."),
@@ -519,8 +515,7 @@
         ["log_t5"] = new InvMeta("log_t5", "Log (T5)", "Resources", IMG_WOOD, "Yew logs."),
         ["log_t6"] = new InvMeta("log_t6", "Log (T6)", "Resources", IMG_WOOD, "Magic logs."),
         ["log_t7"] = new InvMeta("log_t7", "Log (T7)", "Resources", IMG_WOOD, "Elder logs."),
-
-		// planks
+		// Planks
         ["plank_t1"] = new InvMeta("plank_t1", "Plank (T1)", "Materials", IMG_PLANK, "A basic wooden plank."),
 		["plank_t2"] = new InvMeta("plank_t2", "Plank (T2)", "Materials", IMG_PLANK, "A standard wooden plank."),
         ["plank_t3"] = new InvMeta("plank_t3", "Plank (T3)", "Materials", IMG_PLANK, "A refined wooden plank."),
@@ -528,8 +523,7 @@
         ["plank_t5"] = new InvMeta("plank_t5", "Plank (T5)", "Materials", IMG_PLANK, "An excellent wooden plank."),
         ["plank_t6"] = new InvMeta("plank_t6", "Plank (T6)", "Materials", IMG_PLANK, "A superior wooden plank."),
 		["plank_t7"] = new InvMeta("plank_t7", "Plank (T7)", "Materials", IMG_PLANK, "A masterwork wooden plank."),
-
-        // ores
+        // Ores
         ["copper_ore"] = new InvMeta("copper_ore", "Copper Ore", "Resources", IMG_STONE, "Ore for smelting."),
         ["tin_ore"] = new InvMeta("tin_ore", "Tin Ore", "Resources", IMG_STONE, "Ore for smelting."),
         ["iron_ore"] = new InvMeta("iron_ore", "Iron Ore", "Resources", IMG_STONE, "Ore for smelting."),
@@ -537,8 +531,7 @@
         ["gold_ore"] = new InvMeta("gold_ore", "Gold Ore", "Resources", IMG_ORE, "Ore for smelting."),
         ["mithril_ore"] = new InvMeta("mithril_ore", "Mithril Ore", "Resources", IMG_ORE, "Ore for smelting."),
         ["adamant_ore"] = new InvMeta("adamant_ore", "Adamantite Ore", "Resources", IMG_ORE, "Ore for smelting."),
-
-        // bars
+        // Bars
         ["bronze_bar"] = new InvMeta("bronze_bar", "Bronze Bar", "Materials", IMG_BAR, "Smelted alloy."),
         ["iron_bar"] = new InvMeta("iron_bar", "Iron Bar", "Materials", IMG_BAR, "Smelted iron."),
         ["silver_bar"] = new InvMeta("silver_bar", "Silver Bar", "Materials", IMG_BAR, "Smelted metal."),
@@ -546,7 +539,6 @@
         ["mith_bar"] = new InvMeta("mith_bar", "Mithril Bar", "Materials", IMG_BAR, "Smelted metal."),
         ["adam_bar"] = new InvMeta("adam_bar", "Adamant Bar", "Materials", IMG_BAR, "Smelted metal."),
     };
-
     // sell-panel state
     string? selectedItemId = null;
     int sellAmount = 1;
@@ -698,8 +690,6 @@
         "adam_bar" => "Adamant Bar",
         _ => id.Replace('_', ' ')
     };
-
-    // Helpers — keep ONLY this one
     bool HasInputsOnce(IdleGatherWebGame.Services.GameState.CraftRecipe r)
         => r.Inputs.All(i => Math.Floor(GS.GetAmount(i.ResourceId)) >= i.Amount);
 
@@ -773,7 +763,7 @@
     // ===== Smelting Area =====
     IdleGatherWebGame.Services.GameState.CraftRecipe? selectedSmelt;
     bool showSmelt = false;
-    int smeltCount = 0; // 0 = ∞
+    int smeltCount = 0; // 0 = infinite
     string smeltMsg = "";
 
     RenderFragment SmeltingArea() => __builder =>
