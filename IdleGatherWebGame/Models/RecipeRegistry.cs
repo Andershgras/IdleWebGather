@@ -30,6 +30,61 @@ public static class RecipeRegistry
             Outputs = new() { new("plank_t2", 1) },
             XpPerCycle = 10
         },
+        new GameState.CraftRecipe
+        {
+            Id = "plank_t3",
+            Name = "Plank (T3)",
+            Icon = "🪵",
+            RequiredLevel = 10,
+            Duration = TimeSpan.FromSeconds(6),
+            Inputs = new() { new("log_t3", 2) },
+            Outputs = new() { new("plank_t3", 1) },
+            XpPerCycle = 14
+        },
+        new GameState.CraftRecipe
+        {
+            Id = "plank_t4",
+            Name = "Plank (T4)",
+            Icon = "🪵",
+            RequiredLevel = 15,
+            Duration = TimeSpan.FromSeconds(7),
+            Inputs = new() { new("log_t4", 2) },
+            Outputs = new() { new("plank_t4", 1) },
+            XpPerCycle = 18
+        },
+        new GameState.CraftRecipe
+        {
+            Id = "plank_t5",
+            Name = "Plank (T5)",
+            Icon = "🪵",
+            RequiredLevel = 20,
+            Duration = TimeSpan.FromSeconds(8),
+            Inputs = new() { new("log_t5", 2) },
+            Outputs = new() { new("plank_t5", 1) },
+            XpPerCycle = 22
+        },
+        new GameState.CraftRecipe
+        {
+            Id = "plank_t6",
+            Name = "Plank (T6)",
+            Icon = "🪵",
+            RequiredLevel = 25,
+            Duration = TimeSpan.FromSeconds(9),
+            Inputs = new() { new("log_t6", 2) },
+            Outputs = new() { new("plank_t6", 1) },
+            XpPerCycle = 26
+        },
+        new GameState.CraftRecipe
+        {
+            Id = "plank_t7",
+            Name = "Plank (T7)",
+            Icon = "🪵",
+            RequiredLevel = 30,
+            Duration = TimeSpan.FromSeconds(10),
+            Inputs = new() { new("log_t7", 2) },
+            Outputs = new() { new("plank_t7", 1) },
+            XpPerCycle = 30
+        },
     };
 
     public static readonly List<GameState.CraftRecipe> Smelting = new()
