@@ -135,8 +135,7 @@ namespace IdleGatherWebGame.Services
         public GameState(IBrowserStorage storage)
         {
             _storage = storage;
-
-            // --- Initialize Skills (new) ---
+            // --- Initialize Skills ---
             Skills = new SkillService();
             Skills.EnsureKnownSkills([
                 (SkillIds.Woodcutting, "Woodcutting"),

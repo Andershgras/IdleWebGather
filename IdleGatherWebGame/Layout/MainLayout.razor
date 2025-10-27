@@ -343,77 +343,106 @@
 
         <!-- Right column -->
         <aside class="right card">
-            <h3>Inventory</h3>
-            @{
+            <button class="inv-toggle"
+                    @onclick="() => showInventory = !showInventory"
+                    style="
+            width:100%;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            background:#2a2b33;
+            border:1px solid #3a3b44;
+            border-radius:6px;
+            color:#cdd4f5;
+            font-weight:700;
+            font-size:1.05rem;
+            padding:8px 10px;
+            margin-bottom:8px;
+            cursor:pointer;
+            box-shadow:none;
+            outline:none;
+            transition:background-color .15s ease,border-color .15s ease,color .15s ease;
+        "
+                    onmouseover="this.style.background='#32333d';this.style.borderColor='#4a4b55';this.style.color='#fff';"
+                    onmouseout="this.style.background='#2a2b33';this.style.borderColor='#3a3b44';this.style.color='#cdd4f5';">
+                🎒 Inventory
+                <span style="font-size:.85em;color:#aaa;margin-left:6px;">
+                    (@(showInventory ? "Hide" : "Show"))
+                </span>
+            </button>
+
+            @if (showInventory)
+            {
                 var groups = GetInventoryGroups();
-            }
-            @if (groups.Count == 0)
-            {
-                <p class="small">You haven’t obtained any items yet.</p>
-            }
-            else
-            {
-                foreach (var group in groups)
+
+                if (groups.Count == 0)
                 {
-                    <div class="inv-section">
-                        <h4 class="inv-title">@group.Category</h4>
-                        @foreach (var item in group.Items)
-                        {
-                            var id = item.Meta.Id;
-                            var amt = item.Amount;
-                            var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
+            <p class="small">You haven’t obtained any items yet.</p>
+        }
+        else
+        {
+            foreach (var group in groups)
+            {
+                <div class="inv-section">
+                    <h4 class="inv-title">@group.Category</h4>
+                    @foreach (var item in group.Items)
+                    {
+                        var id = item.Meta.Id;
+                        var amt = item.Amount;
+                        var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
 
-                            <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
-                                <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
+                        <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
+                            <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
 
-                                <div class="inv-tip inv-pop">
-                                    <div class="tip-name">@item.Meta.Name</div>
-                                    <div class="tip-cat">@item.Meta.Category</div>
-                                    <div class="tip-amt">Owned: @Fmt(amt)</div>
-                                    @if (hasPrice)
-                                    {
-                                        <div class="tip-amt">Sell Price: @unitPrice</div>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
-                        {
-                            var meta = _invMeta[selectedItemId];
-                            var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
-
-                            <div class="sell-panel card">
-                                <div class="sell-title">@Fmt(SelectedItemOwned) @meta.Name</div>
-
-                                <div class="sell-row">
-                                    <input class="input small" type="number" min="1" max="@MaxSellAll" @bind="sellAmount" @bind:event="oninput" />
-                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
-                                    <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
-                                </div>
-
+                            <div class="inv-tip inv-pop">
+                                <div class="tip-name">@item.Meta.Name</div>
+                                <div class="tip-cat">@item.Meta.Category</div>
+                                <div class="tip-amt">Owned: @Fmt(amt)</div>
                                 @if (hasPrice)
                                 {
-                                    <div class="sell-row">
-                                        <button class="btn wide"
-                                                disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
-                                                @onclick="SellSelected">
-                                            Sell for @(sellAmount * p) Coins
-                                        </button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="sell-row">
-                                        <span class="small">This item cannot be sold.</span>
-                                    </div>
+                                    <div class="tip-amt">Sell Price: @unitPrice</div>
                                 }
                             </div>
-                        }
-                    </div>
-                }
+                        </div>
+                    }
+
+                    @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
+                    {
+                        var meta = _invMeta[selectedItemId];
+                        var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
+
+                        <div class="sell-panel card">
+                            <div class="sell-title">@Fmt(SelectedItemOwned) @meta.Name</div>
+
+                            <div class="sell-row">
+                                <input class="input small" type="number" min="1" max="@MaxSellAll" @bind="sellAmount" @bind:event="oninput" />
+                                <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
+                                <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
+                            </div>
+
+                            @if (hasPrice)
+                            {
+                                <div class="sell-row">
+                                    <button class="btn wide"
+                                            disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
+                                            @onclick="SellSelected">
+                                        Sell for @(sellAmount * p) Coins
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="sell-row">
+                                    <span class="small">This item cannot be sold.</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             }
-        </aside>
+        }
+    }
+</aside>
     </div>
 </div>
 
@@ -783,7 +812,6 @@
     }
 };
 
-
     bool TryStartMine(WorkNode n)
     {
         if (GS.PlayerName is null) { mineMsg = "Create a character first."; StateHasChanged(); return false; }
@@ -794,7 +822,6 @@
         StateHasChanged();
         return ok;
     }
-
     // ===== Smelting Area =====
     IdleGatherWebGame.Services.GameState.CraftRecipe? selectedSmelt;
     bool showSmelt = false;
@@ -991,9 +1018,9 @@
     <div class="text-success fw-semibold mb-2">You have selected: Heads</div>
     }
     else
-{
-        <div class="text-danger fw-semibold mb-2">You have selected: Tails</div>
-}
+    {
+    <div class="text-danger fw-semibold mb-2">You have selected: Tails</div>
+    }
 
         <div class="d-flex gap-2">
             <button class="btn btn-primary" @onclick="DoCoinFlip">Flip</button>
@@ -1025,4 +1052,16 @@
         _cfMsg = $"{(win ? "WIN" : "LOSS")} • Result: {(resultHeads ? "Heads" : "Tails")} • Bet: {amt:N0}";
         StateHasChanged();
     }
+private bool showInventory = true;
+private void ToggleInventory()
+{
+    showInventory = !showInventory;
+
+    // Optional: close any open sell panel when hiding inventory
+    if (!showInventory)
+    {
+        selectedItemId = null;
+        sellAmount = 1;
+    }
+}
 }
