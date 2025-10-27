@@ -89,7 +89,6 @@
                 }
             </div>
         </div>
-
     </header>
 
     <!-- Character creation modal -->
@@ -197,8 +196,29 @@
                         </div>
                     }
                 </div>
-                <!-- Casino Menu -->
-                <button class="menu-item @(leftTab == "Casino" ? "active" : null)" @onclick='() => SetLeft("Casino")'>Casino</button>
+                <!-- Casino -->
+                <div class="menu-with-tip"
+                     @onmouseover="() => hoveringCasino = true"
+                     @onmouseout="() => hoveringCasino = false">
+                    <button class="menu-item full @(leftTab == "Casino" ? "active" : null)"
+                            @onclick='() => SetLeft("Casino")'>
+                        🎰 Casino
+                        <span class="mini-level">Lv @GS.Casino.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Casino.Xp / GS.Casino.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+
+                    @if (hoveringCasino)
+                    {
+                        <div class="hover-tip card">
+                            <div><b>Casino</b></div>
+                            <div>Level: @GS.Casino.Level</div>
+                            <div>Total XP: @GS.Casino.Xp.ToString("0.##")</div>
+                            <div>XP to next: @((GS.Casino.XpForNextLevel - GS.Casino.Xp).ToString("0.##"))</div>
+                        </div>
+                    }
+                </div>
                 <!-- Settings Menu -->
                 <button class="menu-item @(leftTab == "Settings" ? "active" : null)" @onclick='() => SetLeft("Settings")'>Settings</button>
             </nav>
@@ -424,6 +444,8 @@
 
     // ----- lifecycle / autosave wiring -----
     private bool _autosaveHooked = false;
+
+    private bool hoveringCasino;
 
     protected override void OnInitialized()
     {

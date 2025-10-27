@@ -421,9 +421,6 @@ code {
         width: 220px;
         z-index: 5;
     }
-
-
-
 /* ===== Woodcutting grid ===== */
 .tree-grid {
     display: grid;
@@ -706,7 +703,7 @@ code {
     transition-delay: 0s;
 }
 
-/* Optional: guard against vertical overflow */
+/* Guard against vertical overflow */
 .right .inv-tip {
     max-height: 60vh;
     overflow: auto;
