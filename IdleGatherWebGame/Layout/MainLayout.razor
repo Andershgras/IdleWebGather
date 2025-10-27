@@ -343,40 +343,42 @@
 
         <!-- Right column -->
         <aside class="right card">
-            <button class="inv-toggle"
-                    @onclick="() => showInventory = !showInventory"
-                    style="
-            width:100%;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            background:#2a2b33;
-            border:1px solid #3a3b44;
-            border-radius:6px;
-            color:#cdd4f5;
-            font-weight:700;
-            font-size:1.05rem;
-            padding:8px 10px;
-            margin-bottom:8px;
-            cursor:pointer;
-            box-shadow:none;
-            outline:none;
-            transition:background-color .15s ease,border-color .15s ease,color .15s ease;
-        "
-                    onmouseover="this.style.background='#32333d';this.style.borderColor='#4a4b55';this.style.color='#fff';"
-                    onmouseout="this.style.background='#2a2b33';this.style.borderColor='#3a3b44';this.style.color='#cdd4f5';">
-                🎒 Inventory
-                <span style="font-size:.85em;color:#aaa;margin-left:6px;">
-                    (@(showInventory ? "Hide" : "Show"))
-                </span>
-            </button>
 
-            @if (showInventory)
-            {
-                var groups = GetInventoryGroups();
+    <!-- Tabs -->
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button
+            @onclick='() => ToggleRight("Inventory")'
+            style="
+                flex:1; display:flex; align-items:center; justify-content:space-between;
+                background:@(rightTab==TabInventory ? "#2a2b33" : "transparent");
+                border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+                font-weight:700; padding:8px 10px; cursor:pointer;">
+            🎒 Inventory
+            <span style="font-size:.85em; color:#aaa;">
+                (@(rightTab==TabInventory ? "Hide" : "Show"))
+            </span>
+        </button>
 
-                if (groups.Count == 0)
-                {
+        <button
+            @onclick='() => ToggleRight("Gear")'
+            style="
+                flex:1; display:flex; align-items:center; justify-content:space-between;
+                background:@(rightTab==TabGear ? "#2a2b33" : "transparent");
+                border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+                font-weight:700; padding:8px 10px; cursor:pointer;">
+            🛡️ Gear
+            <span style="font-size:.85em; color:#aaa;">
+                (@(rightTab==TabGear ? "Hide" : "Show"))
+            </span>
+        </button>
+    </div>
+
+    @if (rightTab == TabInventory)
+    {
+        @* Keep your existing inventory rendering as-is *@
+            var groups = GetInventoryGroups();
+        @if (groups.Count == 0)
+        {
             <p class="small">You haven’t obtained any items yet.</p>
         }
         else
@@ -385,6 +387,7 @@
             {
                 <div class="inv-section">
                     <h4 class="inv-title">@group.Category</h4>
+
                     @foreach (var item in group.Items)
                     {
                         var id = item.Meta.Id;
@@ -442,7 +445,16 @@
             }
         }
     }
+
+    @if (rightTab == TabGear)
+    {
+        <div class="card" style="background:#1e1f25; border:1px solid #2b2c33; border-radius:8px; padding:10px;">
+            <h4 style="margin:0 0 6px 0;">Gear (WIP)</h4>
+            <p class="small">Here you’ll equip items, see stats and bonuses. (Placeholder text for now.)</p>
+        </div>
+    }
 </aside>
+
     </div>
 </div>
 
@@ -1064,4 +1076,11 @@ private void ToggleInventory()
         sellAmount = 1;
     }
 }
+private const string TabInventory = "Inventory";
+private const string TabGear = "Gear";
+
+private string? rightTab = TabInventory;
+
+private void ToggleRight(string tab)
+    => rightTab = rightTab == tab ? null : tab;
 }
