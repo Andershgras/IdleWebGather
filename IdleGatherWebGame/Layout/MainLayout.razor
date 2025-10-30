@@ -110,6 +110,18 @@
                 <button class="menu-item @(leftTab == "Shop" ? "active" : null)" @onclick='() => SetLeft("Shop")'>Shop</button>
                 <button class="menu-item @(leftTab == "Quests" ? "active" : null)" @onclick='() => SetLeft("Quests")'>Quests</button>
 
+                <!-- Clicking with hover tooltip -->
+                <div class="menu-with-tip" @onmouseover="() => hoveringClicking = true" @onmouseout="() => hoveringClicking = false">
+                    <button class="menu-item full @(leftTab == "Clicking" ? "active" : null)"
+                            @onclick='() => SetLeft("Clicking")'>
+                        ✨ Clicking
+                        <span class="mini-level">Lv @GS.Clicking.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Clicking.Xp / GS.Clicking.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+                </div>
+
                 <!-- Woodcutting with hover tooltip -->
                 <div class="menu-with-tip" @onmouseover="() => hoveringWood = true" @onmouseout="() => hoveringWood = false">
                     <button class="menu-item full @(leftTab == "Woodcutting" ? "active" : null)"
@@ -280,6 +292,10 @@
                         </div>
                     </div>
                 }
+            }
+            else if (leftTab == "Clicking")
+            {
+                @ClickingArea()
             }
             else if (leftTab == "Crafting")
             {
@@ -759,7 +775,30 @@
     bool hoveringCraft = false;
     bool hoveringMining = false;
     bool hoveringSmelt = false;
+    private bool hoveringClicking = false;
+    private RenderFragment ClickingArea() => __builder =>
+{
+    <div class="clicking-wrap">
+        <div class="clicking-stats">
+            <div><strong>Clicking</strong> — Lv @GS.Clicking.Level (@GS.Clicking.Xp.ToString("0") / @GS.Clicking.XpForNextLevel.ToString("0"))</div>
+            <div>Total Clicks: <strong>@GS.TotalClicks</strong></div>
+        </div>
 
+        <button class="click-target" @onclick="OnActiveClick" title="Click me! +1 XP">
+            💎 Crystal Core
+        </button>
+
+        <div class="mini-progress big">
+            <div style="width:@(((GS.Clicking.Xp / GS.Clicking.XpForNextLevel) * 100).ToString("0"))%"></div>
+        </div>
+    </div>
+    ;
+};
+
+    private void OnActiveClick()
+    {
+        GS.RegisterClick();
+    }
     // ===== Mining Area =====
     WorkNode? selectedOre;
     bool showOre = false;
@@ -886,8 +925,6 @@
         </div>
     }
 };
-
-
     bool TryStartSmelt(IdleGatherWebGame.Services.GameState.CraftRecipe r)
     {
         if (GS.PlayerName is null) { smeltMsg = "Create a character first."; StateHasChanged(); return false; }

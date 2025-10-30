@@ -13,6 +13,7 @@ namespace IdleGatherWebGame.Models
         public DateTimeOffset LastSavedUtc { get; set; } = DateTimeOffset.UtcNow;
         public int OverallLevel { get; set; } = 1;
         public double OverallXp { get; set; } = 0;
+        public int TotalClicks { get; set; } = 0;
 
         public class SkillData
         {

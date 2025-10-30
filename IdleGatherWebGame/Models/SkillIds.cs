@@ -2,6 +2,7 @@
 
 public static class SkillIds
 {
+    public const string Clicking = "clicking";
     public const string Woodcutting = "woodcutting";
     public const string Crafting = "crafting";
     public const string Mining = "mining";

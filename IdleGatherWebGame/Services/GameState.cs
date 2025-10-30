@@ -27,6 +27,7 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyList<WorkNode> OreNodes => _ores;
         public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
         public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
+        public Skill Clicking => Skills.Get(SkillIds.Clicking);
         public Skill Woodcutting => Skills.Get(SkillIds.Woodcutting);
         public Skill Crafting => Skills.Get(SkillIds.Crafting);
         public Skill Mining => Skills.Get(SkillIds.Mining);
@@ -51,6 +52,8 @@ namespace IdleGatherWebGame.Services
         private readonly Timer _timer;
         public string? ActiveGatherNodeId => _job?.Node?.Id;
         public string? ActiveRecipeId => _job?.Recipe?.Id;
+        private int _totalClicks = 0;               
+        public int TotalClicks => _totalClicks;     
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -471,9 +474,8 @@ namespace IdleGatherWebGame.Services
                 Skills = this.Skills.ToSaveDictionary(),
                 OverallLevel = this.OverallLevel,
                 OverallXp = this.OverallXp,
-
-                // timestamp
-                LastSavedUtc = DateTimeOffset.UtcNow
+                LastSavedUtc = DateTimeOffset.UtcNow,
+                TotalClicks = _totalClicks
             };
 
             if (_job is not null)
@@ -517,10 +519,12 @@ namespace IdleGatherWebGame.Services
             }
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
+            _totalClicks = Math.Max(0, data.TotalClicks);
 
             MigrateIfNeeded(data);
             // Ensure the known skills exist, then restore saved values
             Skills.EnsureKnownSkills([
+                (SkillIds.Clicking,    "Clicking"),
                 (SkillIds.Woodcutting, "Woodcutting"),
                 (SkillIds.Crafting,    "Crafting"),
                 (SkillIds.Mining,      "Mining"),
@@ -583,7 +587,12 @@ namespace IdleGatherWebGame.Services
 
             OnChange?.Invoke();
         }
-
+        public void RegisterClick()
+        {
+            _totalClicks++;
+            Clicking.AddXp(1);         
+            OnChange?.Invoke();
+        }
         public async Task LoadFromLocalAsync()
         {
             if (_storage is null || _loadedFromLocal) { _loadedFromLocal = true; return; }
