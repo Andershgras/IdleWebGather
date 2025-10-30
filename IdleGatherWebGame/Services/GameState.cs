@@ -547,6 +547,9 @@ namespace IdleGatherWebGame.Services
 
                         var spec = new GatherSpec($"{(isWood ? "woodcut" : "mining")}:{node.Id}", node, outId, skill);
                         _job = new ActiveJob(type, node, null, spec, cycles: null);
+                        // honor saved elapsed time for gathering jobs
+                        var elapsed = Math.Clamp(aj.ElapsedSeconds, 0, _job.Duration.TotalSeconds);
+                        _job.Advance(TimeSpan.FromSeconds(elapsed));
                     }
                 }
                 else if (!string.IsNullOrEmpty(aj.RecipeId))
