@@ -1,0 +1,27 @@
+﻿@using IdleGatherWebGame.Models
+@inject IdleGatherWebGame.Services.GameState GS
+@implements IDisposable
+
+<div class="clicking-wrap">
+    <div class="clicking-stats">
+        <div><strong>Clicking</strong> — Lv @GS.Clicking.Level (@GS.Clicking.Xp.ToString("0") / @GS.Clicking.XpForNextLevel.ToString("0"))</div>
+        <div>Total Clicks: <strong>@GS.TotalClicks</strong></div>
+    </div>
+
+    <button class="click-target" @onclick="OnActiveClick" title="Click me! +1 XP">
+        💎 Crystal Core
+    </button>
+
+    <div class="mini-progress big">
+        <div style="width:@(((GS.Clicking.Xp / GS.Clicking.XpForNextLevel) * 100).ToString("0"))%"></div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => GS.OnChange += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void OnActiveClick() => GS.RegisterClick();
+
+    public void Dispose() => GS.OnChange -= Refresh;
+}

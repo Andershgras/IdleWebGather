@@ -3,8 +3,8 @@
 public sealed record ItemMeta(
     string Id,
     string Name,
-    string Category,   // e.g. "Resources", "Materials", "Currencies"
-    string Icon,       // emoji or URL/data-URL
+    string Category,
+    string Icon,
     int? SellPricePerUnit = null
 );
 

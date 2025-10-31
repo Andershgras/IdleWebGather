@@ -305,7 +305,7 @@
             }
             else if (leftTab == "Clicking")
             {
-                @ClickingArea()
+                <ClickingArea />
             }
             else if (leftTab == "Crafting")
             {
@@ -323,7 +323,7 @@
             }
             else if (leftTab == "Minigames")
             {
-                @MinigamesArea
+                <MinigamesArea />
             }
             else if (leftTab == "Settings")
             {
@@ -685,34 +685,10 @@
         var earned = GS.Sell(selectedItemId, qty); // adds coins, subtracts item
         sellAmount = Math.Clamp(sellAmount, 1, MaxSellAll);
     }
-    private RenderFragment MinigamesArea => @<div class="mini-wrap">
-    <div class="mini-header">
-        <div>
-            <strong>Minigames</strong> — Lv @GS.Minigames.Level
-            (@GS.Minigames.Xp.ToString("0") / @GS.Minigames.XpForNextLevel.ToString("0"))
-        </div>
-        <div>Games played: <strong>@GS.MinigameGamesPlayed</strong></div>
-    </div>
-
-    <div class="mini-grid">
-        @foreach (var m in MinigameRegistry.All)
-                {
-                var best = (GS.MinigameHighScores != null && GS.MinigameHighScores.TryGetValue(m.Id, out var h)) ? h : 0;
-        <div class="mini-card">
-            <div class="mini-icon">@m.Icon</div>
-            <div class="mini-name">@m.Name</div>
-            <div class="mini-blurb">@m.Blurb</div>
-            <div class="mini-best">Best: <strong>@best.ToString("0")</strong></div>
-            <button @onclick="@(() => PlayStub(m.Id))" title="Stub: simulates a score">Play (stub)</button>
-        </div>
-                }
-    </div>
-</div>;
-
     private Dictionary<string, double> _high = new();
     private int _gamesPlayed = 0;
 
-    private void PlayStub(string id)
+    private void PlayStub(string id) // Debug method to simulate playing - to be removed later
     {
         // simulate a score: 0–100
         var score = Math.Round(Random.Shared.NextDouble() * 100, 0);
@@ -827,24 +803,6 @@
     bool hoveringMining = false;
     bool hoveringSmelt = false;
     private bool hoveringClicking = false;
-    private RenderFragment ClickingArea() => __builder =>
-{
-    <div class="clicking-wrap">
-        <div class="clicking-stats">
-            <div><strong>Clicking</strong> — Lv @GS.Clicking.Level (@GS.Clicking.Xp.ToString("0") / @GS.Clicking.XpForNextLevel.ToString("0"))</div>
-            <div>Total Clicks: <strong>@GS.TotalClicks</strong></div>
-        </div>
-
-        <button class="click-target" @onclick="OnActiveClick" title="Click me! +1 XP">
-            💎 Crystal Core
-        </button>
-
-        <div class="mini-progress big">
-            <div style="width:@(((GS.Clicking.Xp / GS.Clicking.XpForNextLevel) * 100).ToString("0"))%"></div>
-        </div>
-    </div>
-    ;
-};
 
     private void OnActiveClick()
     {
@@ -853,7 +811,7 @@
     // ===== Mining Area =====
     WorkNode? selectedOre;
     bool showOre = false;
-    int mineCount = 0; // 0 = ∞
+    int mineCount = 0; // 0 = infinite
     string mineMsg = "";
 
     RenderFragment MiningArea() => __builder =>
