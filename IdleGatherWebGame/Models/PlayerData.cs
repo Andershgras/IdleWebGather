@@ -14,6 +14,9 @@ namespace IdleGatherWebGame.Models
         public int OverallLevel { get; set; } = 1;
         public double OverallXp { get; set; } = 0;
         public int TotalClicks { get; set; } = 0;
+        public Dictionary<string, double> MinigameHighScores { get; set; } = new();
+        public int MinigameGamesPlayed { get; set; } = 0;
+
 
         public class SkillData
         {

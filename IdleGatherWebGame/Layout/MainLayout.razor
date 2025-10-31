@@ -121,7 +121,17 @@
                         </div>
                     </button>
                 </div>
-
+                <!-- Minigames with hover tooltip -->
+                <div class="menu-with-tip" @onmouseover="() => hoveringMinigames = true" @onmouseout="() => hoveringMinigames = false">
+                    <button class="menu-item full @(leftTab == "Minigames" ? "active" : null)"
+                            @onclick='() => SetLeft("Minigames")'>
+                        🎮 Minigames
+                        <span class="mini-level">Lv @GS.Minigames.Level</span>
+                        <div class="mini-progress">
+                            <div style="width:@(((GS.Minigames.Xp / GS.Minigames.XpForNextLevel) * 100).ToString("0"))%"></div>
+                        </div>
+                    </button>
+                </div>
                 <!-- Woodcutting with hover tooltip -->
                 <div class="menu-with-tip" @onmouseover="() => hoveringWood = true" @onmouseout="() => hoveringWood = false">
                     <button class="menu-item full @(leftTab == "Woodcutting" ? "active" : null)"
@@ -311,7 +321,10 @@
 
                 @SmeltingArea()
             }
-
+            else if (leftTab == "Minigames")
+            {
+                @MinigamesArea
+            }
             else if (leftTab == "Settings")
             {
                 <!-- Settings Area -->
@@ -504,6 +517,7 @@
     private bool _autosaveHooked = false;
 
     private bool hoveringCasino;
+    private bool hoveringMinigames = false;
 
     protected override void OnInitialized()
     {
@@ -671,7 +685,44 @@
         var earned = GS.Sell(selectedItemId, qty); // adds coins, subtracts item
         sellAmount = Math.Clamp(sellAmount, 1, MaxSellAll);
     }
+    private RenderFragment MinigamesArea => @<div class="mini-wrap">
+    <div class="mini-header">
+        <div>
+            <strong>Minigames</strong> — Lv @GS.Minigames.Level
+            (@GS.Minigames.Xp.ToString("0") / @GS.Minigames.XpForNextLevel.ToString("0"))
+        </div>
+        <div>Games played: <strong>@GS.MinigameGamesPlayed</strong></div>
+    </div>
 
+    <div class="mini-grid">
+        @foreach (var m in MinigameRegistry.All)
+                {
+                var best = (GS.MinigameHighScores != null && GS.MinigameHighScores.TryGetValue(m.Id, out var h)) ? h : 0;
+        <div class="mini-card">
+            <div class="mini-icon">@m.Icon</div>
+            <div class="mini-name">@m.Name</div>
+            <div class="mini-blurb">@m.Blurb</div>
+            <div class="mini-best">Best: <strong>@best.ToString("0")</strong></div>
+            <button @onclick="@(() => PlayStub(m.Id))" title="Stub: simulates a score">Play (stub)</button>
+        </div>
+                }
+    </div>
+</div>;
+
+    private Dictionary<string, double> _high = new();
+    private int _gamesPlayed = 0;
+
+    private void PlayStub(string id)
+    {
+        // simulate a score: 0–100
+        var score = Math.Round(Random.Shared.NextDouble() * 100, 0);
+        GS.SubmitMinigameScore(id, score);
+
+        // refresh local view
+        _gamesPlayed++;
+        if (!_high.ContainsKey(id) || score > _high[id]) _high[id] = score;
+        StateHasChanged();
+    }
     // ------ Crafting UI ------
     IdleGatherWebGame.Services.GameState.CraftRecipe? selectedRecipe;
     bool showCraft = false;

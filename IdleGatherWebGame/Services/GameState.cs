@@ -27,12 +27,15 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyList<WorkNode> OreNodes => _ores;
         public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
         public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
+        #region Skill ShortCuts
         public Skill Clicking => Skills.Get(SkillIds.Clicking);
+        public Skill Minigames => Skills.Get(SkillIds.Minigames);
         public Skill Woodcutting => Skills.Get(SkillIds.Woodcutting);
         public Skill Crafting => Skills.Get(SkillIds.Crafting);
         public Skill Mining => Skills.Get(SkillIds.Mining);
         public Skill Smelting => Skills.Get(SkillIds.Smelting);
         public Skill Casino => Skills.Get(SkillIds.Casino);
+        #endregion
         public bool JobRunning => _job is not null;
         public double Progress01 => _job?.Progress01 ?? 0;
         public double SecondsRemaining => _job is null ? 0 : Math.Max(0, (_job.Duration - _job.Elapsed).TotalSeconds);
@@ -53,7 +56,11 @@ namespace IdleGatherWebGame.Services
         public string? ActiveGatherNodeId => _job?.Node?.Id;
         public string? ActiveRecipeId => _job?.Recipe?.Id;
         private int _totalClicks = 0;               
-        public int TotalClicks => _totalClicks;     
+        public int TotalClicks => _totalClicks;
+        private Dictionary<string, double> _minigameHighScores = new(StringComparer.OrdinalIgnoreCase);
+        private int _minigameGamesPlayed = 0;
+        public IReadOnlyDictionary<string, double> MinigameHighScores => _minigameHighScores;
+        public int MinigameGamesPlayed => _minigameGamesPlayed;
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -146,6 +153,8 @@ namespace IdleGatherWebGame.Services
                 (SkillIds.Mining,      "Mining"),
                 (SkillIds.Smelting,    "Smelting"),
                 (SkillIds.Casino,      "Casino"),
+                (SkillIds.Clicking,    "Clicking"), 
+                (SkillIds.Minigames,   "Minigames"),
             ]);
 
             InitDefaults();
@@ -161,6 +170,8 @@ namespace IdleGatherWebGame.Services
                 (SkillIds.Mining,      "Mining"),
                 (SkillIds.Smelting,    "Smelting"),
                 (SkillIds.Casino,      "Casino"),
+                (SkillIds.Clicking,    "Clicking"),
+                (SkillIds.Minigames,   "Minigames"),
             ]);
 
             InitDefaults();
@@ -475,7 +486,7 @@ namespace IdleGatherWebGame.Services
                 OverallLevel = this.OverallLevel,
                 OverallXp = this.OverallXp,
                 LastSavedUtc = DateTimeOffset.UtcNow,
-                TotalClicks = _totalClicks
+                TotalClicks = _totalClicks,
             };
 
             if (_job is not null)
@@ -488,7 +499,8 @@ namespace IdleGatherWebGame.Services
                     ElapsedSeconds = Math.Clamp(_job.Elapsed.TotalSeconds, 0, _job.Duration.TotalSeconds)
                 };
             }
-
+            data.MinigameHighScores = _minigameHighScores;
+            data.MinigameGamesPlayed = _minigameGamesPlayed;
             return data;
         }
         private void ApplyPlayerData(PlayerData data)
@@ -520,11 +532,14 @@ namespace IdleGatherWebGame.Services
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
             _totalClicks = Math.Max(0, data.TotalClicks);
+            _minigameHighScores = data.MinigameHighScores ?? new(StringComparer.OrdinalIgnoreCase);
+            _minigameGamesPlayed = Math.Max(0, data.MinigameGamesPlayed);
 
             MigrateIfNeeded(data);
             // Ensure the known skills exist, then restore saved values
             Skills.EnsureKnownSkills([
                 (SkillIds.Clicking,    "Clicking"),
+                (SkillIds.Minigames,   "Minigames"),
                 (SkillIds.Woodcutting, "Woodcutting"),
                 (SkillIds.Crafting,    "Crafting"),
                 (SkillIds.Mining,      "Mining"),
@@ -743,5 +758,28 @@ namespace IdleGatherWebGame.Services
             OnChange?.Invoke();
             return true;
         }
+        public void SubmitMinigameScore(string gameId, double score)
+        {
+            if (string.IsNullOrWhiteSpace(gameId)) return;
+            score = Math.Max(0, score);
+
+            _minigameGamesPlayed++;
+
+            var had = _minigameHighScores.TryGetValue(gameId, out var best);
+            if (!had || score > best)
+            {
+                _minigameHighScores[gameId] = score;
+                PushToast("🏆", $"New high score in {gameId}: {score:0}");
+            }
+            else
+            {
+                PushToast("🎮", $"Score: {score:0} (Best: {best:0})");
+            }
+
+            Minigames.AddXp(score);
+            GrantOverallXp(Math.Max(1, score * 0.25));
+            OnChange?.Invoke();
+        }
+
     }
 }
