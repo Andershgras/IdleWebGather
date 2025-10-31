@@ -1,0 +1,129 @@
+﻿@using IdleGatherWebGame.Services
+@inject GameState GS
+@implements IDisposable
+
+<div class="menu-vert">
+    <!-- Clicking -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Clicking"))" @onmouseout="@ClearHover">
+        <NavButton Id="Clicking" Label="Clicking" Icon="✨"
+                   Active="@(Current == "Clicking")"
+                   Level="@GS.Clicking.Level" Xp="@GS.Clicking.Xp" XpForNextLevel="@GS.Clicking.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Clicking")
+        {
+            @TooltipFor("Clicking")
+        }
+    </div>
+
+    <!-- Minigames -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Minigames"))" @onmouseout="@ClearHover">
+        <NavButton Id="Minigames" Label="Minigames" Icon="🎮"
+                   Active="@(Current == "Minigames")"
+                   Level="@GS.Minigames.Level" Xp="@GS.Minigames.Xp" XpForNextLevel="@GS.Minigames.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Minigames")
+        {
+            @TooltipFor("Minigames")
+        }
+    </div>
+
+    <!-- Woodcutting -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Woodcutting"))" @onmouseout="@ClearHover">
+        <NavButton Id="Woodcutting" Label="Woodcutting" Icon="🌲"
+                   Active="@(Current == "Woodcutting")"
+                   Level="@GS.Woodcutting.Level" Xp="@GS.Woodcutting.Xp" XpForNextLevel="@GS.Woodcutting.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Woodcutting")
+        {
+            @TooltipFor("Woodcutting")
+        }
+    </div>
+
+    <!-- Crafting -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Crafting"))" @onmouseout="@ClearHover">
+        <NavButton Id="Crafting" Label="Crafting" Icon="🪵"
+                   Active="@(Current == "Crafting")"
+                   Level="@GS.Crafting.Level" Xp="@GS.Crafting.Xp" XpForNextLevel="@GS.Crafting.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Crafting")
+        {
+            @TooltipFor("Crafting")
+        }
+    </div>
+
+    <!-- Mining -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Mining"))" @onmouseout="@ClearHover">
+        <NavButton Id="Mining" Label="Mining" Icon="⛏️"
+                   Active="@(Current == "Mining")"
+                   Level="@GS.Mining.Level" Xp="@GS.Mining.Xp" XpForNextLevel="@GS.Mining.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Mining")
+        {
+            @TooltipFor("Mining")
+        }
+    </div>
+
+    <!-- Smelting -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Smelting"))" @onmouseout="@ClearHover">
+        <NavButton Id="Smelting" Label="Smelting" Icon="🔥"
+                   Active="@(Current == "Smelting")"
+                   Level="@GS.Smelting.Level" Xp="@GS.Smelting.Xp" XpForNextLevel="@GS.Smelting.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Smelting")
+        {
+            @TooltipFor("Smelting")
+        }
+    </div>
+
+    <!-- Casino -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Casino"))" @onmouseout="@ClearHover">
+        <NavButton Id="Casino" Label="Casino" Icon="🎰"
+                   Active="@(Current == "Casino")"
+                   Level="@GS.Casino.Level" Xp="@GS.Casino.Xp" XpForNextLevel="@GS.Casino.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Casino")
+        {
+            @TooltipFor("Casino")
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Current { get; set; } = "Woodcutting";
+    [Parameter] public EventCallback<string> OnChange { get; set; }
+
+    private string? hoveredId;
+
+    protected override void OnInitialized() => GS.OnChange += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => GS.OnChange -= Refresh;
+
+    private void Hover(string id) => hoveredId = id;
+    private void ClearHover() => hoveredId = null;
+
+    private RenderFragment TooltipFor(string id) => @<div class="hover-tip card">
+@{
+    var s = SkillById(id);
+    var xpToNext = s is null ? 0 : Math.Max(0, s.XpForNextLevel - s.Xp);
+}
+    <div><b>@id</b></div>
+@if (s is not null)
+{
+        <div>Level: @s.Level</div>
+        <div>Total XP: @s.Xp.ToString("0.##")</div>
+        <div>XP to next: @xpToNext.ToString("0.##")</div>
+}
+</div>;
+
+private Models.Skill? SkillById(string id) => id switch
+{
+    "Clicking" => GS.Clicking,
+    "Minigames" => GS.Minigames,
+    "Woodcutting" => GS.Woodcutting,
+    "Crafting" => GS.Crafting,
+    "Mining" => GS.Mining,
+    "Smelting" => GS.Smelting,
+    "Casino" => GS.Casino,
+    _ => null
+};
+}

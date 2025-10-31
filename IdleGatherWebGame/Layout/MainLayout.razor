@@ -101,146 +101,29 @@
             </div>
         </div>
     }
-
     <!-- Left / Main / Right -->
     <div class="shell">
         <!-- Left column (menus) -->
         <aside class="left card">
             <nav class="menu-vert">
-                <button class="menu-item @(leftTab == "Shop" ? "active" : null)" @onclick='() => SetLeft("Shop")'>Shop</button>
-                <button class="menu-item @(leftTab == "Quests" ? "active" : null)" @onclick='() => SetLeft("Quests")'>Quests</button>
+                <button class="menu-item @(leftTab == "Shop" ? "active" : null)"
+                        @onclick='() => SetLeft("Shop")'>
+                    Shop
+                </button>
 
-                <!-- Clicking with hover tooltip -->
-                <div class="menu-with-tip" @onmouseover="() => hoveringClicking = true" @onmouseout="() => hoveringClicking = false">
-                    <button class="menu-item full @(leftTab == "Clicking" ? "active" : null)"
-                            @onclick='() => SetLeft("Clicking")'>
-                        ✨ Clicking
-                        <span class="mini-level">Lv @GS.Clicking.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Clicking.Xp / GS.Clicking.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
-                </div>
-                <!-- Minigames with hover tooltip -->
-                <div class="menu-with-tip" @onmouseover="() => hoveringMinigames = true" @onmouseout="() => hoveringMinigames = false">
-                    <button class="menu-item full @(leftTab == "Minigames" ? "active" : null)"
-                            @onclick='() => SetLeft("Minigames")'>
-                        🎮 Minigames
-                        <span class="mini-level">Lv @GS.Minigames.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Minigames.Xp / GS.Minigames.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
-                </div>
-                <!-- Woodcutting with hover tooltip -->
-                <div class="menu-with-tip" @onmouseover="() => hoveringWood = true" @onmouseout="() => hoveringWood = false">
-                    <button class="menu-item full @(leftTab == "Woodcutting" ? "active" : null)"
-                            @onclick='() => SetLeft("Woodcutting")'>
-                        🌲 Woodcutting
-                        <span class="mini-level">Lv @GS.Woodcutting.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Woodcutting.Xp / GS.Woodcutting.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
+                <button class="menu-item @(leftTab == "Quests" ? "active" : null)"
+                        @onclick='() => SetLeft("Quests")'>
+                    Quests
+                </button>
 
-                    @if (hoveringWood)
-                    {
-                        <div class="hover-tip card">
-                            <div><b>Woodcutting</b></div>
-                            <div>Level: @GS.Woodcutting.Level</div>
-                            <div>Total XP: @GS.Woodcutting.Xp.ToString("0.##")</div>
-                            <div>XP to next: @((GS.Woodcutting.XpForNextLevel - GS.Woodcutting.Xp).ToString("0.##"))</div>
-                        </div>
-                    }
-                </div>
-                <!-- Crafting with hover tooltip -->
-                <div class="menu-with-tip"
-                     @onmouseover="() => hoveringCraft = true"
-                     @onmouseout="() => hoveringCraft = false">
-                    <button class="menu-item full @(leftTab == "Crafting" ? "active" : null)"
-                            @onclick='() => SetLeft("Crafting")'>
-                        🪵 Crafting
-                        <span class="mini-level">Lv @GS.Crafting.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Crafting.Xp / GS.Crafting.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
+                <LeftNav Current="@leftTab" OnChange="SetLeft" />
 
-                    @if (hoveringCraft)
-                    {
-                        <div class="hover-tip card">
-                            <div><b>Crafting</b></div>
-                            <div>Level: @GS.Crafting.Level</div>
-                            <div>Total XP: @GS.Crafting.Xp.ToString("0.##")</div>
-                            <div>XP to next: @((GS.Crafting.XpForNextLevel - GS.Crafting.Xp).ToString("0.##"))</div>
-                        </div>
-                    }
-                </div>
-                <!-- Mining -->
-                <div class="menu-with-tip" @onmouseover="() => hoveringMining = true" @onmouseout="() => hoveringMining = false">
-                    <button class="menu-item full @(leftTab == "Mining" ? "active" : null)" @onclick='() => SetLeft("Mining")'>
-                        ⛏️ Mining
-                        <span class="mini-level">Lv @GS.Mining.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Mining.Xp / GS.Mining.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
-                    @if (hoveringMining)
-                    {
-                        <div class="hover-tip card">
-                            <div><b>Mining</b></div>
-                            <div>Level: @GS.Mining.Level</div>
-                            <div>Total XP: @GS.Mining.Xp.ToString("0.##")</div>
-                            <div>XP to next: @((GS.Mining.XpForNextLevel - GS.Mining.Xp).ToString("0.##"))</div>
-                        </div>
-                    }
-                </div>
-
-                <!-- Smelting -->
-                <div class="menu-with-tip" @onmouseover="() => hoveringSmelt = true" @onmouseout="() => hoveringSmelt = false">
-                    <button class="menu-item full @(leftTab == "Smelting" ? "active" : null)" @onclick='() => SetLeft("Smelting")'>
-                        🔥 Smelting
-                        <span class="mini-level">Lv @GS.Smelting.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Smelting.Xp / GS.Smelting.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
-                    @if (hoveringSmelt)
-                    {
-                        <div class="hover-tip card">
-                            <div><b>Smelting</b></div>
-                            <div>Level: @GS.Smelting.Level</div>
-                            <div>Total XP: @GS.Smelting.Xp.ToString("0.##")</div>
-                            <div>XP to next: @((GS.Smelting.XpForNextLevel - GS.Smelting.Xp).ToString("0.##"))</div>
-                        </div>
-                    }
-                </div>
-                <!-- Casino -->
-                <div class="menu-with-tip"
-                     @onmouseover="() => hoveringCasino = true"
-                     @onmouseout="() => hoveringCasino = false">
-                    <button class="menu-item full @(leftTab == "Casino" ? "active" : null)"
-                            @onclick='() => SetLeft("Casino")'>
-                        🎰 Casino
-                        <span class="mini-level">Lv @GS.Casino.Level</span>
-                        <div class="mini-progress">
-                            <div style="width:@(((GS.Casino.Xp / GS.Casino.XpForNextLevel) * 100).ToString("0"))%"></div>
-                        </div>
-                    </button>
-
-                    @if (hoveringCasino)
-                    {
-                        <div class="hover-tip card">
-                            <div><b>Casino</b></div>
-                            <div>Level: @GS.Casino.Level</div>
-                            <div>Total XP: @GS.Casino.Xp.ToString("0.##")</div>
-                            <div>XP to next: @((GS.Casino.XpForNextLevel - GS.Casino.Xp).ToString("0.##"))</div>
-                        </div>
-                    }
-                </div>
-                <!-- Settings Menu -->
-                <button class="menu-item @(leftTab == "Settings" ? "active" : null)" @onclick='() => SetLeft("Settings")'>Settings</button>
+                <button class="menu-item @(leftTab == "Settings" ? "active" : null)"
+                        @onclick='() => SetLeft("Settings")'>
+                    Settings
+                </button>
             </nav>
+
         </aside>
 
         <!-- Main column -->

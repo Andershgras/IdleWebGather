@@ -776,7 +776,30 @@ code {
 .mini-best {
     margin-top: .25rem;
 }
+.row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
 
+.spacer {
+    flex: 1;
+}
 
+.level {
+    opacity: .9;
+}
+.menu-with-tip {
+    position: relative;
+}
+
+.hover-tip.card {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 8px);
+    z-index: 10;
+    min-width: 180px;
+    padding: .5rem .75rem;
+}
 
 

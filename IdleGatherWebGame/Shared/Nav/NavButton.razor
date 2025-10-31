@@ -1,0 +1,28 @@
+﻿<button class="menu-item full @(Active ? "active" : null)" @onclick="OnClick">
+    <div class="row">
+        <span class="icon">@Icon</span>
+        <span class="label">@Label</span>
+    </div>
+
+    @if (ShowMini)
+    {
+        <div class="mini-progress">
+            <div style="width:@ProgressPercent%"></div>
+        </div>
+    }
+</button>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public bool ShowMini { get; set; } = true;
+    [Parameter] public int Level { get; set; }
+    [Parameter] public double Xp { get; set; }
+    [Parameter] public double XpForNextLevel { get; set; } = 1;
+    [Parameter] public EventCallback<string> OnChange { get; set; }
+
+    private string ProgressPercent => Math.Clamp((Xp / Math.Max(1, XpForNextLevel)) * 100, 0, 100).ToString("0");
+    private Task OnClick() => OnChange.InvokeAsync(Id);
+}
