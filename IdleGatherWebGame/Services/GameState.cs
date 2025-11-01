@@ -61,6 +61,8 @@ namespace IdleGatherWebGame.Services
         private int _minigameGamesPlayed = 0;
         public IReadOnlyDictionary<string, double> MinigameHighScores => _minigameHighScores;
         public int MinigameGamesPlayed => _minigameGamesPlayed;
+        public void Info(string icon, string message, double seconds = 2.5) => PushToast(icon, message, seconds);
+
         public sealed class CraftRecipe
         {
             public string Id { get; set; } = "";
@@ -501,6 +503,14 @@ namespace IdleGatherWebGame.Services
             }
             data.MinigameHighScores = _minigameHighScores;
             data.MinigameGamesPlayed = _minigameGamesPlayed;
+
+            data.Equipment = _equipment
+    .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+    .ToDictionary(
+        kv => kv.Key.ToString(),
+        kv => kv.Value!
+    );
+
             return data;
         }
         private void ApplyPlayerData(PlayerData data)
@@ -534,7 +544,12 @@ namespace IdleGatherWebGame.Services
             _totalClicks = Math.Max(0, data.TotalClicks);
             _minigameHighScores = data.MinigameHighScores ?? new(StringComparer.OrdinalIgnoreCase);
             _minigameGamesPlayed = Math.Max(0, data.MinigameGamesPlayed);
-
+            _equipment.Keys.ToList().ForEach(k => _equipment[k] = null); // clear
+            foreach (var kv in data.Equipment ?? new Dictionary<string, string>())
+            {
+                if (Enum.TryParse<GearSlot>(kv.Key, out var slot))
+                    _equipment[slot] = kv.Value;
+            }
             MigrateIfNeeded(data);
             // Ensure the known skills exist, then restore saved values
             Skills.EnsureKnownSkills([
@@ -780,6 +795,39 @@ namespace IdleGatherWebGame.Services
             GrantOverallXp(Math.Max(1, score * 0.25));
             OnChange?.Invoke();
         }
+        private readonly Dictionary<GearSlot, string?> _equipment = new()
+        {
+            [GearSlot.WoodTool] = null,
+            [GearSlot.CraftTool] = null,
+            [GearSlot.MiningTool] = null,
+            [GearSlot.SmeltTool] = null,
+            [GearSlot.Head] = null,
+            [GearSlot.Chest] = null,
+            [GearSlot.Legs] = null,
+            [GearSlot.Feet] = null,
+            [GearSlot.Hands] = null,
+            [GearSlot.MainHand] = null,
+            [GearSlot.OffHand] = null,
+        };
 
+        public IReadOnlyDictionary<GearSlot, string?> Equipment => _equipment;
+        public string? GetEquipped(GearSlot slot) => _equipment.TryGetValue(slot, out var id) ? id : null;
+
+        public void Equip(GearSlot slot, string itemId)
+        {
+            _equipment[slot] = itemId;
+            PushToast("🧰", $"Equipped {IdToNice(itemId)} in {slot}");
+            OnChange?.Invoke();
+        }
+
+        public void Unequip(GearSlot slot)
+        {
+            if (_equipment.ContainsKey(slot))
+            {
+                _equipment[slot] = null;
+                PushToast("🧰", $"Unequipped {slot}");
+                OnChange?.Invoke();
+            }
+        }
     }
 }

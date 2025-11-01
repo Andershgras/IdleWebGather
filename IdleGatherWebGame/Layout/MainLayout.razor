@@ -358,13 +358,11 @@
         }
     }
 
-    @if (rightTab == TabGear)
-    {
-        <div class="card" style="background:#1e1f25; border:1px solid #2b2c33; border-radius:8px; padding:10px;">
-            <h4 style="margin:0 0 6px 0;">Gear (WIP)</h4>
-            <p class="small">Here you’ll equip items, see stats and bonuses. (Placeholder text for now.)</p>
-        </div>
-    }
+
+            @if (rightTab == TabGear)
+            {
+                <GearPanel />   @* <- renders the grid of gear slots *@
+            }
 </aside>
 
     </div>

@@ -1,0 +1,53 @@
+﻿@using IdleGatherWebGame.Services
+@using IdleGatherWebGame.Models
+@inject GameState GS
+
+<div class="gear-grid card">
+    @foreach (var s in _slots)
+    {
+        var equippedId = GS.GetEquipped(s.Slot);
+        var display = equippedId is not null && ItemRegistry.TryGet(equippedId, out var meta)
+        ? $"{meta.Icon} {meta.Name}"
+        : "— Empty —";
+        <div class="gear-cell">
+            <div class="gear-title">@s.Icon @s.Label</div>
+            <button class="gear-slot" @onclick="@(() => OnClickSlot(s.Slot))" title="Click to (un)equip (placeholder)">
+                @display
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly (GearSlot Slot, string Label, string Icon)[] _slots =
+    {
+    (GearSlot.WoodTool, "Woodcutting Tool", "🪓"),
+    (GearSlot.CraftTool, "Crafting Tool", "🪚"),
+    (GearSlot.MiningTool, "Mining Tool", "⛏️"),
+    (GearSlot.SmeltTool, "Smelting Tool", "🔥"),
+
+    (GearSlot.Head, "Head", "🪖"),
+    (GearSlot.Chest, "Chestplate", "👕"),
+    (GearSlot.Legs, "Legs", "🦵"),
+    (GearSlot.Feet, "Feet", "👢"),
+    (GearSlot.Hands, "Hands", "🧤"),
+    (GearSlot.MainHand, "Main Hand", "🗡️"),
+    (GearSlot.OffHand, "Off Hand", "🛡️"),
+  };
+
+    private void OnClickSlot(GearSlot slot)
+    {
+        // Placeholder behavior:
+        // If something is equipped -> unequip it (this will toast if your Unequip() does).
+        // If empty -> no-op for now (later we’ll open an equip picker).
+        if (GS.GetEquipped(slot) is not null)
+        {
+            GS.Unequip(slot);
+        }
+        else
+        {
+            // no-op until the equip picker is implemented
+            // (intentionally no direct toast call here)
+        }
+    }
+}

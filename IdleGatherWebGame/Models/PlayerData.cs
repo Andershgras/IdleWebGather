@@ -16,6 +16,7 @@ namespace IdleGatherWebGame.Models
         public int TotalClicks { get; set; } = 0;
         public Dictionary<string, double> MinigameHighScores { get; set; } = new();
         public int MinigameGamesPlayed { get; set; } = 0;
+        public Dictionary<string, string> Equipment { get; set; } = new();
 
 
         public class SkillData
