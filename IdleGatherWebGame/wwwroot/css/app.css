@@ -834,5 +834,36 @@ code {
     .gear-slot:hover {
         border-color: #3a7;
     }
-
-
+.btn.ghost.active {
+    border-color: #4caf50;
+    background: rgba(76,175,80,0.08);
+}
+.btn.ghost.active {
+    border-color: #4caf50;
+    background: rgba(76, 175, 80, 0.15);
+    color: #cdd4f5;
+    transition: background 0.15s, border-color 0.15s;
+}
+.btn.ghost.subtab {
+    background: #1b1e34; /* keep ghost look */
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+    .btn.ghost.subtab.active,
+    .btn.ghost.subtab:focus,
+    .btn.ghost.subtab.active:focus {
+        outline: 2px solid var(--accent);
+        box-shadow: 0 0 10px rgba(124,179,66,0.2);
+        background: rgba(124,179,66,0.15); /* brighter green tint */
+        color: var(--text); /* keep normal light text color */
+        transition: background .15s, border-color .15s;
+    }
+.subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}

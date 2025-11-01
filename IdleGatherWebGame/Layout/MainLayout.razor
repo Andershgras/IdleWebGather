@@ -192,8 +192,54 @@
             }
             else if (leftTab == "Crafting")
             {
-                @CraftingArea()
+                <!-- Crafting sub-tabs -->
+                <div class="subtabs">
+                    @foreach (var t in new[] { "Materials", "Tools", "Main Hand", "Off Hand", "Head", "Legs", "Chestplate", "Feet", "Hands" })
+                    {
+                        <button class="btn ghost subtab @(craftTab == t ? "active" : null)"
+                                @onclick="() => SetCraft(t)">
+                            @t
+                        </button>
+                    }
+                </div>
+                @if (craftTab == "Materials")
+                {
+                    @CraftingArea()
+                }
+                else if (craftTab == "Tools")
+                {
+                    <div class="card"><p>Tools crafting — WIP</p></div>
+                }
+                else if (craftTab == "Main Hand")
+                {
+                    <div class="card"><p>Main Hand crafting — WIP</p></div>
+                }
+                else if (craftTab == "Off Hand")
+                {
+                    <div class="card"><p>Off Hand crafting — WIP</p></div>
+                }
+                else if (craftTab == "Head")
+                {
+                    <div class="card"><p>Head armor crafting — WIP</p></div>
+                }
+                else if (craftTab == "Legs")
+                {
+                    <div class="card"><p>Legs armor crafting — WIP</p></div>
+                }
+                else if (craftTab == "Chestplate")
+                {
+                    <div class="card"><p>Chestplate crafting — WIP</p></div>
+                }
+                else if (craftTab == "Feet")
+                {
+                    <div class="card"><p>Feet armor crafting — WIP</p></div>
+                }
+                else if (craftTab == "Hands")
+                {
+                    <div class="card"><p>Hands armor crafting — WIP</p></div>
+                }
             }
+
             else if (leftTab == "Mining")
             {
 
@@ -1006,4 +1052,11 @@ private string? rightTab = TabInventory;
 
 private void ToggleRight(string tab)
     => rightTab = rightTab == tab ? null : tab;
+private string craftTab = "Materials";
+
+private void SetCraft(string tab)
+{
+    craftTab = tab;
+    StateHasChanged();
+}
 }
