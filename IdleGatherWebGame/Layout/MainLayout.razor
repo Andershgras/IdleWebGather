@@ -238,7 +238,6 @@
                     <div class="card"><p>Hands armor crafting — WIP</p></div>
                 }
             }
-
             else if (leftTab == "Mining")
             {
 
@@ -273,6 +272,10 @@
                         <button class="btn ghost" @onclick="async () => { await GS.ClearLocalAsync(); }">Clear local save</button>
                     </div>
                 }
+            }
+            else if (leftTab == "Mastery")
+            {
+                @MasteryArea()
             }
             else if (leftTab == "Casino")
             {
@@ -791,7 +794,7 @@
             </div>
         </div>
     }
-};
+    };
 
     bool TryStartMine(WorkNode n)
     {
@@ -808,6 +811,11 @@
     bool showSmelt = false;
     int smeltCount = 0; // 0 = infinite
     string smeltMsg = "";
+
+    RenderFragment MasteryArea() => __builder =>
+    {
+        <h2>Mastery</h2>
+    };
 
     RenderFragment SmeltingArea() => __builder =>
 {

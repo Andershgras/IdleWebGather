@@ -35,6 +35,7 @@ namespace IdleGatherWebGame.Services
         public Skill Mining => Skills.Get(SkillIds.Mining);
         public Skill Smelting => Skills.Get(SkillIds.Smelting);
         public Skill Casino => Skills.Get(SkillIds.Casino);
+        public Skill Mastery => Skills.Get(SkillIds.Mastery);
         #endregion
         public bool JobRunning => _job is not null;
         public double Progress01 => _job?.Progress01 ?? 0;
@@ -157,6 +158,7 @@ namespace IdleGatherWebGame.Services
                 (SkillIds.Casino,      "Casino"),
                 (SkillIds.Clicking,    "Clicking"), 
                 (SkillIds.Minigames,   "Minigames"),
+                (SkillIds.Mastery,     "Mastery"),
             ]);
 
             InitDefaults();
@@ -174,6 +176,7 @@ namespace IdleGatherWebGame.Services
                 (SkillIds.Casino,      "Casino"),
                 (SkillIds.Clicking,    "Clicking"),
                 (SkillIds.Minigames,   "Minigames"),
+                (SkillIds.Mastery,     "Mastery"),
             ]);
 
             InitDefaults();
@@ -559,6 +562,7 @@ namespace IdleGatherWebGame.Services
                 (SkillIds.Mining,      "Mining"),
                 (SkillIds.Smelting,    "Smelting"),
                 (SkillIds.Casino,      "Casino"),
+                (SkillIds.Mastery,     "Mastery"),
             ]);
             Skills.LoadFromDictionary(data.Skills);
 

@@ -9,4 +9,5 @@ public static class SkillIds
     public const string Mining = "mining";
     public const string Smelting = "smelting";
     public const string Casino = "casino";
+    public const string Mastery = "mastery";
 }

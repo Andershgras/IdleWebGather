@@ -86,6 +86,16 @@
             @TooltipFor("Casino")
         }
     </div>
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Mastery"))" @onmouseout="@ClearHover">
+        <NavButton Id="Mastery" Label="Mastery" Icon="🏆"
+                    Active="@(Current == "Mastery")"
+                    Level="@GS.Mastery.Level" Xp="@GS.Mastery.Xp" XpForNextLevel="@GS.Mastery.XpForNextLevel"
+				    OnChange="OnChange" />
+        @if (hoveredId == "Mastery")
+        {
+            @TooltipFor("Mastery")
+        }
+    </div>
 </div>
 
 @code {
@@ -124,6 +134,7 @@ private Models.Skill? SkillById(string id) => id switch
     "Mining" => GS.Mining,
     "Smelting" => GS.Smelting,
     "Casino" => GS.Casino,
+	"Mastery" => GS.Mastery,
     _ => null
 };
 }
