@@ -601,20 +601,6 @@ namespace IdleGatherWebGame.Services
                     }
                 }
             }
-            // --- One-time migration: legacy "wood" -> "log_t1" ---
-            if (_resources.TryGetValue("wood", out var legacy) && legacy.Amount > 0)
-            {
-                var amt = legacy.Amount;
-
-                if (_resources.TryGetValue("log_t1", out var t1))
-                    _resources["log_t1"] = t1 with { Amount = t1.Amount + amt };
-                else
-                    _resources["log_t1"] = new Resource("log_t1", "Log (T1)", "🌲", amt);
-
-                _resources["wood"] = legacy with { Amount = 0 };
-                PushToast("🪵", $"Migrated {amt:0} Wood → Log (T1)");
-            }
-
             OnChange?.Invoke();
         }
         public void RegisterClick()
