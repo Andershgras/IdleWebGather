@@ -87,7 +87,6 @@
             </div>
         </div>
     </header>
-
     <!-- Character creation modal -->
     @if (GS.PlayerName is null)
     {
@@ -298,119 +297,127 @@
             </div>
                         }
         </section>
-
         <!-- Right column -->
         <aside class="right card">
 
-    <!-- Tabs -->
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
-        <button
-            @onclick='() => ToggleRight("Inventory")'
-            style="
-                flex:1; display:flex; align-items:center; justify-content:space-between;
-                background:@(rightTab==TabInventory ? "#2a2b33" : "transparent");
-                border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
-                font-weight:700; padding:8px 10px; cursor:pointer;">
-            🎒 Inventory
-            <span style="font-size:.85em; color:#aaa;">
-                (@(rightTab==TabInventory ? "Hide" : "Show"))
-            </span>
-        </button>
+            <!-- Tabs -->
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <button @onclick='() => ToggleRight(TabInventory)'
+                        style="
+        flex:1; display:flex; align-items:center; justify-content:space-between;
+        background:@(rightTab == TabInventory ? "#2a2b33" : "transparent");
+        border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+        font-weight:700; padding:8px 10px; cursor:pointer;">
+                    🎒 Inventory
+                    <span style="font-size:.85em; color:#aaa;">
+                        (@(rightTab == TabInventory ? "Hide" : "Show"))
+                    </span>
+                </button>
 
-        <button
-            @onclick='() => ToggleRight("Gear")'
-            style="
-                flex:1; display:flex; align-items:center; justify-content:space-between;
-                background:@(rightTab==TabGear ? "#2a2b33" : "transparent");
-                border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
-                font-weight:700; padding:8px 10px; cursor:pointer;">
-            🛡️ Gear
-            <span style="font-size:.85em; color:#aaa;">
-                (@(rightTab==TabGear ? "Hide" : "Show"))
-            </span>
-        </button>
-    </div>
+                <button @onclick='() => ToggleRight(TabGear)'
+                        style="
+        flex:1; display:flex; align-items:center; justify-content:space-between;
+        background:@(rightTab == TabGear ? "#2a2b33" : "transparent");
+        border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+        font-weight:700; padding:8px 10px; cursor:pointer;">
+                    🛡️ Gear
+                    <span style="font-size:.85em; color:#aaa;">
+                        (@(rightTab == TabGear ? "Hide" : "Show"))
+                    </span>
+                </button>
+            </div>
 
-    @if (rightTab == TabInventory)
-    {
-        @* Keep your existing inventory rendering as-is *@
-            var groups = GetInventoryGroups();
-        @if (groups.Count == 0)
-        {
-            <p class="small">You haven’t obtained any items yet.</p>
-        }
-        else
-        {
-            foreach (var group in groups)
+            @* Only one of these blocks renders at a time *@
+            @if (rightTab == TabInventory)
             {
-                <div class="inv-section">
-                    <h4 class="inv-title">@group.Category</h4>
-
-                    @foreach (var item in group.Items)
+                @* INVENTORY (your new grid version) *@
+                @if (!GetInventoryGroups().Any())
+                {
+                    <p class="small">You haven’t obtained any items yet.</p>
+                }
+                else
+                {
+                    @foreach (var group in GetInventoryGroups())
                     {
-                        var id = item.Meta.Id;
-                        var amt = item.Amount;
-                        var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
+                        <div class="inv-section">
+                            <h4 class="inv-title">@group.Category</h4>
 
-                        <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
-                            <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
-
-                            <div class="inv-tip inv-pop">
-                                <div class="tip-name">@item.Meta.Name</div>
-                                <div class="tip-cat">@item.Meta.Category</div>
-                                <div class="tip-amt">Owned: @Fmt(amt)</div>
-                                @if (hasPrice)
+                            <div class="inv-grid">
+                                @foreach (var item in group.Items)
                                 {
-                                    <div class="tip-amt">Sell Price: @unitPrice</div>
+                                    var id = item.Meta.Id;
+                                    var amt = item.Amount;
+                                    var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
+
+                                    <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
+                                        @if (!string.IsNullOrEmpty(item.Meta.Img))
+                                        {
+                                            <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
+                                        }
+                                        else if (ItemRegistry.TryGet(id, out var regMeta))
+                                        {
+                                            <div class="inv-emoji">@regMeta.Icon</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="inv-emoji">❔</div>
+                                        }
+
+                                        <div class="inv-tip inv-pop">
+                                            <div class="tip-name">@item.Meta.Name</div>
+                                            <div class="tip-cat">@group.Category</div>
+                                            <div class="tip-amt">Owned: @Math.Floor(amt)</div>
+                                            @if (hasPrice)
+                                            {
+                                                <div class="tip-amt">Sell Price: @unitPrice</div>
+                                            }
+                                        </div>
+                                    </div>
                                 }
                             </div>
-                        </div>
-                    }
 
-                    @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
-                    {
-                        var meta = _invMeta[selectedItemId];
-                        var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
-
-                        <div class="sell-panel card">
-                            <div class="sell-title">@Fmt(SelectedItemOwned) @meta.Name</div>
-
-                            <div class="sell-row">
-                                <input class="input small" type="number" min="1" max="@MaxSellAll" @bind="sellAmount" @bind:event="oninput" />
-                                <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
-                                <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
-                            </div>
-
-                            @if (hasPrice)
+                            @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
                             {
-                                <div class="sell-row">
-                                    <button class="btn wide"
-                                            disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
-                                            @onclick="SellSelected">
-                                        Sell for @(sellAmount * p) Coins
-                                    </button>
+                                var meta = group.Items.First(i => i.Meta.Id == selectedItemId).Meta;
+                                var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
+
+                                <div class="sell-panel card">
+                                    <div class="sell-title">@Math.Floor(SelectedItemOwned) @meta.Name</div>
+
+                                    <div class="sell-row">
+                                        <input class="input small" type="number" min="1" max="@MaxSellAll"
+                                               @bind="sellAmount" @bind:event="oninput" />
+                                        <button class="btn tiny ghost" @onclick="@(() => sellAmount = 1)">1</button>
+                                        <button class="btn tiny ghost" @onclick="@(() => sellAmount = Math.Max(1, MaxSellAll))">All</button>
+                                    </div>
+
+                                    @if (hasPrice)
+                                    {
+                                        <div class="sell-row">
+                                            <button class="btn wide"
+                                                    disabled="@(sellAmount <= 0 || sellAmount > MaxSellAll)"
+                                                    @onclick="SellSelected">
+                                                Sell for @(sellAmount* p) Coins
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="sell-row">
+                                            <span class="small">This item cannot be sold.</span>
+                                        </div>
+                                    }
                                 </div>
                             }
-                            else
-                            {
-                                <div class="sell-row">
-                                    <span class="small">This item cannot be sold.</span>
-                                </div>
-                            }
                         </div>
                     }
-                </div>
+                }
             }
-        }
-    }
-
-
-            @if (rightTab == TabGear)
+            else if (rightTab == TabGear)
             {
-                <GearPanel />   @* <- renders the grid of gear slots *@
+                <GearPanel />
             }
-</aside>
-
+        </aside>
     </div>
 </div>
 
@@ -1042,7 +1049,11 @@ private const string TabGear = "Gear";
 private string? rightTab = TabInventory;
 
 private void ToggleRight(string tab)
-    => rightTab = rightTab == tab ? null : tab;
+{
+    rightTab = (rightTab == tab) ? null : tab; // click again to hide
+    StateHasChanged();
+}
+
 private string craftTab = "Materials";
 
 private void SetCraft(string tab)

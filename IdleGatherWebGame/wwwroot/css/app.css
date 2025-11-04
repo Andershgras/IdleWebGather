@@ -893,4 +893,19 @@ code {
     color: var(--muted);
     opacity: 0.9;
 }
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 10px;
+}
 
+.inv-emoji {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+}
