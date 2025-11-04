@@ -98,7 +98,7 @@ namespace IdleGatherWebGame.Services
             public JobType Type { get; }
             public WorkNode? Node { get; }
             public CraftRecipe? Recipe { get; }
-            public GatherSpec? Gather { get; } // non-null for gathering jobs
+            public GatherSpec? Gather { get; }
             public TimeSpan Duration { get; }
             public TimeSpan Elapsed { get; private set; }
             public int? CyclesRemaining { get; private set; } // null = infinite
@@ -440,7 +440,6 @@ namespace IdleGatherWebGame.Services
             _toasts.Add(new Toast(icon, text, DateTimeOffset.UtcNow.AddSeconds(seconds)));
         }
 
-        // ---------- Content / data ----------
         private void InitDefaults()
         {
             _resources = ItemRegistry.All.ToDictionary(
@@ -625,14 +624,12 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
                 return;
             }
-
             if (string.IsNullOrWhiteSpace(json))
             {
                 _loadedFromLocal = true;
                 OnChange?.Invoke();
                 return;
             }
-
             try
             {
                 var data = System.Text.Json.JsonSerializer.Deserialize<PlayerData>(json, _json);
@@ -645,7 +642,6 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
             }
         }
-
         public async Task SaveToLocalAsync(bool force = false)
         {
             if (_storage is null || !AutosaveEnabled) return;
@@ -741,7 +737,7 @@ namespace IdleGatherWebGame.Services
             // Flip with a small house edge (player wins slightly less than 50%)
             double roll = Random.Shared.NextDouble();
             double threshold = 0.5 - (CasinoHouseEdge / 2);
-            resultHeads = roll < threshold ? true : false;
+            resultHeads = roll < threshold;
 
             // Player wins only if their choice matches resultHeads
             win = (pickHeads == resultHeads);

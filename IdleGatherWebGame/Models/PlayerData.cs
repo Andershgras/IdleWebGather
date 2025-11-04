@@ -27,7 +27,7 @@ namespace IdleGatherWebGame.Models
 
         public class ActiveJobSave
         {
-            public string NodeId { get; set; } = "";
+            public string? NodeId { get; set; } = "";
             public double ElapsedSeconds { get; set; }
             public string? RecipeId { get; set; }
         }
