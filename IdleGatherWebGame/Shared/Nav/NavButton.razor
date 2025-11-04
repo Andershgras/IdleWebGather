@@ -1,7 +1,12 @@
 ﻿<button class="menu-item full @(Active ? "active" : null)" @onclick="OnClick">
-    <div class="row">
-        <span class="icon">@Icon</span>
-        <span class="label">@Label</span>
+    <div class="nav-row">
+        <div class="nav-left">
+            <span class="nav-icon">@Icon</span>
+            <span class="nav-label">@Label</span>
+        </div>
+        <div class="nav-right">
+            <span class="nav-level">@Level</span>
+        </div>
     </div>
 
     @if (ShowMini)
@@ -11,6 +16,8 @@
         </div>
     }
 </button>
+
+
 
 @code {
     [Parameter] public string Id { get; set; } = "";
