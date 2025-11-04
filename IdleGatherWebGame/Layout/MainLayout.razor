@@ -147,7 +147,7 @@
                     @foreach (var t in GS.TreeNodes)
                     {
                         var locked = !GS.CanChop(t);
-                        var isActive = GS.ActiveGatherNodeId == t.Id;   // ← simple, robust
+                        var isActive = GS.ActiveGatherNodeId == t.Id;
 
                         <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
                              @onclick="@(() => { if (!locked) { selectedTree = t; showInfo = true; startMsg = ""; } })"
@@ -204,7 +204,7 @@
                 </div>
                 @if (craftTab == "Materials")
                 {
-                    @CraftingArea()
+                    @MaterialsArea()
                 }
                 else if (craftTab == "Tools")
                 {
@@ -417,7 +417,6 @@
 @code {
     // ---------- Tabs / UI ----------
     string leftTab = "Woodcutting";
-    bool hoveringWood = false;
     string newName = "";
     string rename = "";
 
@@ -442,9 +441,6 @@
 
     // ----- lifecycle / autosave wiring -----
     private bool _autosaveHooked = false;
-
-    private bool hoveringCasino;
-    private bool hoveringMinigames = false;
 
     protected override void OnInitialized()
     {
@@ -632,9 +628,9 @@
     int craftCount = 0; // 0 = infinite
     string craftMsg = "";
 
-    RenderFragment CraftingArea() => __builder =>
+    RenderFragment MaterialsArea() => __builder =>
     {
-        <h2>Crafting</h2>
+        <h2>Planks</h2>
 
         <div class="tree-grid">
             @foreach (var r in GS.CraftingRecipes)
@@ -725,11 +721,6 @@
     };
     bool HasInputsOnce(IdleGatherWebGame.Services.GameState.CraftRecipe r)
         => r.Inputs.All(i => Math.Floor(GS.GetAmount(i.ResourceId)) >= i.Amount);
-
-    bool hoveringCraft = false;
-    bool hoveringMining = false;
-    bool hoveringSmelt = false;
-    private bool hoveringClicking = false;
 
     private void OnActiveClick()
     {
