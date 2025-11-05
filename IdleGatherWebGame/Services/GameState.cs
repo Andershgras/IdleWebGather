@@ -520,6 +520,7 @@ namespace IdleGatherWebGame.Services
             PlayerName = string.IsNullOrWhiteSpace(data.Name) ? "Player" : data.Name;
 
             // Resources from save
+            // Resources from save
             foreach (var kv in data.Resources)
             {
                 var id = kv.Key;
@@ -532,15 +533,16 @@ namespace IdleGatherWebGame.Services
                 }
                 else if (_resources.TryGetValue(id, out var existing))
                 {
-                    // Keep existing metadata if we don't know the item in the registry
+                    // Keep existing if unknown in registry
                     _resources[id] = existing with { Amount = amt };
                 }
                 else
                 {
-                    // Last-resort fallback for unknown ids
+                    // Fallback for unknown ids
                     _resources[id] = new Resource(id, IdToNice(id), "❓", amt);
                 }
             }
+
             if (data.OverallLevel > 0) OverallLevel = data.OverallLevel;
             if (data.OverallXp >= 0) OverallXp = data.OverallXp;
             _totalClicks = Math.Max(0, data.TotalClicks);

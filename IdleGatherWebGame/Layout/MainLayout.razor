@@ -353,18 +353,24 @@
                                     var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
 
                                     <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
-                                        @if (!string.IsNullOrEmpty(item.Meta.Img))
+                                        @if (ItemRegistry.TryGet(id, out var meta))
                                         {
-                                            <img class="inv-img" src="@item.Meta.Img" alt="@item.Meta.Name" />
-                                        }
-                                        else if (ItemRegistry.TryGet(id, out var regMeta))
-                                        {
-                                            <div class="inv-emoji">@regMeta.Icon</div>
+                                            if (LooksLikeImage(meta.Icon))
+                                            {
+                                                <img class="inv-img" src="@meta.Icon" alt="@meta.Name" />
+                                            }
+                                            else
+                                            {
+                                                <div class="inv-emoji">@meta.Icon</div>
+                                            }
                                         }
                                         else
                                         {
                                             <div class="inv-emoji">❔</div>
                                         }
+
+
+                                        <span class="inv-badge">@FormatQty(amt)</span>
 
                                         <div class="inv-tip inv-pop">
                                             <div class="tip-name">@item.Meta.Name</div>
@@ -376,7 +382,10 @@
                                             }
                                         </div>
                                     </div>
+
+
                                 }
+
                             </div>
 
                             @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
@@ -1089,4 +1098,21 @@ private void SetCraft(string tab)
     craftTab = tab;
     StateHasChanged();
 }
+    private static string FormatQty(double v)
+    {
+        v = Math.Floor(v);
+        if (v >= 1_000_000_000) return (v / 1_000_000_000d).ToString("0.#") + "B";
+        if (v >= 1_000_000) return (v / 1_000_000d).ToString("0.#") + "M";
+        if (v >= 1_000) return (v / 1_000d).ToString("0.#") + "K";
+        return v.ToString("0");
+    }
+    private static bool LooksLikeImage(string? icon) =>
+    !string.IsNullOrEmpty(icon) &&
+    (icon!.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+     || icon.StartsWith("/", StringComparison.Ordinal)
+     || icon.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+     || icon.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+     || icon.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+     || icon.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase));
+
 }

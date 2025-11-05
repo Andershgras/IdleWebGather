@@ -15,7 +15,7 @@ public static class ItemRegistry
     {
         // Currencies
         ["coins"] = new("coins", "Coins", "Currencies", "🪙", null), //Main Currency
-        ["chips"] = new("chips", "Chips", "Currencies", "🎰", null), //Casino Currency
+        ["chips"] = new("chips", "Chips", "Currencies", "🎲", null), //Casino Currency
         // Logs
         ["log_t1"] = new("log_t1", "Log (T1)", "Resources", "🌲", 2),
         ["log_t2"] = new("log_t2", "Log (T2)", "Resources", "🌲", 3),
