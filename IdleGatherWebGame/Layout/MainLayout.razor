@@ -822,7 +822,30 @@
 
     RenderFragment MasteryArea() => __builder =>
     {
-        <h2>Mastery</h2>
+        <div class="card" style="margin-bottom:10px;">
+            <h2>Mastery</h2>
+            <p class="small">Level @GS.Mastery.Level — @GS.Mastery.Xp.ToString("0") / @GS.Mastery.XpForNextLevel.ToString("0") XP</p>
+        </div>
+
+        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
+            @foreach (var row in GetMasteryRows())
+            {
+                <div class="card" style="padding:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-weight:700;">@row.name</div>
+                        <div class="small" style="opacity:.8;">Tier <b>@row.tier</b></div>
+                    </div>
+
+                    <div class="small" style="margin:.25rem 0 .5rem;">
+                        @row.count / @row.target
+                    </div>
+
+                    <div style="background:#2a2b33;border:1px solid #3a3b44;border-radius:6px;height:10px;overflow:hidden;">
+                        <div style="height:100%;background:#0d6efd;width:@BarWidth(row.count, row.target)"></div>
+                    </div>
+                </div>
+            }
+        </div>
     };
 
     RenderFragment SmeltingArea() => __builder =>
@@ -1114,5 +1137,63 @@ private void SetCraft(string tab)
      || icon.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
      || icon.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
      || icon.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase));
+    // Build rows for the UI from registries + GameState
+    private IEnumerable<(string id, string name, long count, int tier, long target)> GetMasteryRows()
+    {
+        // Local helpers so we don't rely on static GameState in Razor
+        static string MidGather(string nodeId) => $"gather:{nodeId}";
+        static string MidRecipe(string recipeId) => $"craft:{recipeId}";
+        static long TierTarget(int nextTier) => (long)Math.Pow(10, nextTier);
+
+        // Trees (woodcutting)
+        foreach (var t in TreeRegistry.All)
+        {
+            var id = MidGather(t.Id);
+            var count = GS.GetMasteryCount(id);
+            var tier = GS.GetMasteryTier(id);
+            var target = TierTarget(tier + 1);
+            yield return (id, t.Name, count, tier, target);
+        }
+
+        // Ores (mining)
+        foreach (var o in OreRegistry.All)
+        {
+            var id = MidGather(o.Id);
+            var count = GS.GetMasteryCount(id);
+            var tier = GS.GetMasteryTier(id);
+            var target = TierTarget(tier + 1);
+            yield return (id, o.Name, count, tier, target);
+        }
+
+        // Crafting recipes — use your GameState collections
+        foreach (var r in GS.CraftingRecipes)
+        {
+            var id = MidRecipe(r.Id);
+            var count = GS.GetMasteryCount(id);
+            var tier = GS.GetMasteryTier(id);
+            var target = TierTarget(tier + 1);
+            yield return (id, r.Name, count, tier, target);
+        }
+
+        // Smelting recipes — adjust the property name if yours differs
+        if (GS.SmeltingRecipes is not null)
+        {
+            foreach (var r in GS.SmeltingRecipes)
+            {
+                var id = MidRecipe(r.Id);
+                var count = GS.GetMasteryCount(id);
+                var tier = GS.GetMasteryTier(id);
+                var target = TierTarget(tier + 1);
+                yield return (id, r.Name, count, tier, target);
+            }
+        }
+    }
+
+    private static string BarWidth(long count, long target)
+    {
+        if (target <= 0) return "0%";
+        var pct = Math.Clamp((int)Math.Round(100.0 * count / target), 0, 100);
+        return $"{pct}%";
+    }
 
 }

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Text.Json;
+using System.Threading;
+using System.Xml.Linq;
 using IdleGatherWebGame.Models;
 
 namespace IdleGatherWebGame.Services
@@ -63,6 +64,8 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyDictionary<string, double> MinigameHighScores => _minigameHighScores;
         public int MinigameGamesPlayed => _minigameGamesPlayed;
         public void Info(string icon, string message, double seconds = 2.5) => PushToast(icon, message, seconds);
+        private readonly Dictionary<string, long> _masteryCounts = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _masteryTiers = new(StringComparer.OrdinalIgnoreCase);
 
         public sealed class CraftRecipe
         {
@@ -323,6 +326,7 @@ namespace IdleGatherWebGame.Services
 
                 Add(g.OutputResourceId, amt);
                 g.Skill.AddXp(g.Node.XpPerCycle);
+                RecordMasteryProgress(MasteryIdForGatherNode(g.Node.Id), 1);
                 GrantOverallXp(g.Node.XpPerCycle);
 
                 var icon = g.OutputResourceId.Contains("ore") ? "⛏️" : "🌲";
@@ -361,6 +365,7 @@ namespace IdleGatherWebGame.Services
                 }
                 Crafting.AddXp(r.XpPerCycle);
                 GrantOverallXp(r.XpPerCycle);
+                RecordMasteryProgress(MasteryIdForRecipe(r.Id), 1);
                 PushToast("⭐", $"+{r.XpPerCycle:0} XP");
 
                 _job.ResetForNextCycle();
@@ -393,6 +398,7 @@ namespace IdleGatherWebGame.Services
                 }
                 Smelting.AddXp(r.XpPerCycle);
                 GrantOverallXp(r.XpPerCycle);
+                RecordMasteryProgress(MasteryIdForRecipe(r.Id), 1);
                 PushToast("⭐", $"+{r.XpPerCycle:0} XP");
 
                 _job.ResetForNextCycle();
@@ -505,6 +511,8 @@ namespace IdleGatherWebGame.Services
             }
             data.MinigameHighScores = _minigameHighScores;
             data.MinigameGamesPlayed = _minigameGamesPlayed;
+            data.MasteryCounts = new(_masteryCounts);
+            data.MasteryTiers = new(_masteryTiers);
 
             data.Equipment = _equipment
     .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
@@ -549,6 +557,13 @@ namespace IdleGatherWebGame.Services
             _minigameHighScores = data.MinigameHighScores ?? new(StringComparer.OrdinalIgnoreCase);
             _minigameGamesPlayed = Math.Max(0, data.MinigameGamesPlayed);
             _equipment.Keys.ToList().ForEach(k => _equipment[k] = null); // clear
+            _masteryCounts.Clear();
+            if (data.MasteryCounts != null)
+                foreach (var kv in data.MasteryCounts) _masteryCounts[kv.Key] = Math.Max(0, kv.Value);
+
+            _masteryTiers.Clear();
+            if (data.MasteryTiers != null)
+                foreach (var kv in data.MasteryTiers) _masteryTiers[kv.Key] = Math.Max(0, kv.Value);
             foreach (var kv in data.Equipment ?? new Dictionary<string, string>())
             {
                 if (Enum.TryParse<GearSlot>(kv.Key, out var slot))
@@ -865,6 +880,54 @@ namespace IdleGatherWebGame.Services
             Casino.AddXp(grant);
             GrantOverallXp(Math.Max(1, grant * 0.25));
         }
+        private static long TierTarget(int tier) => (long)Math.Pow(10, tier); // tier 1->10, 2->100, 3->1000…
+        private static double MasteryProgressXpPerAction(long countBefore, int tierBefore) => 0.1; // tune
+        private static double MasteryTierXpReward(int tier) => 10 + 10 * tier; // tune
+        public void RecordMasteryProgress(string masteryId, int actions = 1)
+        {
+            if (actions <= 0) return;
 
+            var before = _masteryCounts.TryGetValue(masteryId, out var cnt) ? cnt : 0;
+            var newCount = before + actions;
+            _masteryCounts[masteryId] = newCount;
+
+            // Small drip XP per action
+            var dripXp = MasteryProgressXpPerAction(before, _masteryTiers.TryGetValue(masteryId, out var tBefore) ? tBefore : 0) * actions;
+            Mastery.AddXp(dripXp);
+            GrantOverallXp(Math.Max(1, dripXp * 0.25));
+
+            // Tier check(s) – handle multiple tiers if we crossed more than one target
+            var currentTier = _masteryTiers.TryGetValue(masteryId, out var savedTier) ? savedTier : 0;
+            var unlocked = 0;
+
+            while (newCount >= TierTarget(currentTier + 1))
+            {
+                currentTier++;
+                unlocked++;
+                // Reward
+                var reward = MasteryTierXpReward(currentTier);
+                Mastery.AddXp(reward);
+                GrantOverallXp(Math.Max(1, reward * 0.25));
+                PushToast("🏆", $"Mastery Tier {currentTier} unlocked: {NiceMasteryId(masteryId)}");
+            }
+
+            if (unlocked > 0)
+                _masteryTiers[masteryId] = currentTier;
+
+            OnChange?.Invoke();
+        }
+
+        private static string NiceMasteryId(string id) =>
+            id.Replace("gather:", "Gather ").Replace("craft:", "Craft ");
+        // Public getters so UI can read mastery
+        public long GetMasteryCount(string id) => _masteryCounts.TryGetValue(id, out var c) ? c : 0;
+        public int GetMasteryTier(string id) => _masteryTiers.TryGetValue(id, out var t) ? t : 0;
+
+        // Stable ids for mastery tracking
+        public static string MasteryIdForGatherNode(string nodeId) => $"gather:{nodeId}";
+        public static string MasteryIdForRecipe(string recipeId) => $"craft:{recipeId}";
+
+        // Tier target curve (10, 100, 1,000, …)
+        public static long MasteryTierTarget(int nextTier) => (long)Math.Pow(10, nextTier);
     }
 }

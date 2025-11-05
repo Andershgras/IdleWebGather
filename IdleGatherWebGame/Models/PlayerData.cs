@@ -17,6 +17,8 @@ namespace IdleGatherWebGame.Models
         public Dictionary<string, double> MinigameHighScores { get; set; } = new();
         public int MinigameGamesPlayed { get; set; } = 0;
         public Dictionary<string, string> Equipment { get; set; } = new();
+        public Dictionary<string, long> MasteryCounts { get; set; } = new(); // id -> total actions done
+        public Dictionary<string, int> MasteryTiers { get; set; } = new(); // id -> highest tier reached
 
 
         public class SkillData
