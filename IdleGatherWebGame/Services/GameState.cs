@@ -322,7 +322,8 @@ namespace IdleGatherWebGame.Services
             if (_job.Gather is not null)
             {
                 var g = _job.Gather;
-                _job.Advance(dt);
+                var speedBonus = 1.0 + WoodcuttingEfficiencyBonus;
+                _job.Advance(TimeSpan.FromTicks((long)(dt.Ticks * speedBonus)));
                 if (!_job.Done) { OnChange?.Invoke(); return; }
 
                 // roll integer yield
