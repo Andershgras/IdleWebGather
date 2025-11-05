@@ -303,26 +303,29 @@
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <button @onclick='() => ToggleRight(TabInventory)'
                         style="
-        flex:1; display:flex; align-items:center; justify-content:space-between;
-        background:@(rightTab == TabInventory ? "#2a2b33" : "transparent");
-        border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
-        font-weight:700; padding:8px 10px; cursor:pointer;">
+            flex:1; display:flex; align-items:center; justify-content:center;
+            background:@(rightTab == TabInventory ? "#2a2b33" : "transparent");
+            border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+            font-weight:700; padding:8px 10px; cursor:pointer;">
                     🎒 Inventory
-                    <span style="font-size:.85em; color:#aaa;">
-                        (@(rightTab == TabInventory ? "Hide" : "Show"))
-                    </span>
                 </button>
 
                 <button @onclick='() => ToggleRight(TabGear)'
                         style="
-        flex:1; display:flex; align-items:center; justify-content:space-between;
-        background:@(rightTab == TabGear ? "#2a2b33" : "transparent");
-        border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
-        font-weight:700; padding:8px 10px; cursor:pointer;">
+            flex:1; display:flex; align-items:center; justify-content:center;
+            background:@(rightTab == TabGear ? "#2a2b33" : "transparent");
+            border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+            font-weight:700; padding:8px 10px; cursor:pointer;">
                     🛡️ Gear
-                    <span style="font-size:.85em; color:#aaa;">
-                        (@(rightTab == TabGear ? "Hide" : "Show"))
-                    </span>
+                </button>
+
+                <button @onclick='() => ToggleRight(TabBase)'
+                        style="
+            flex:1; display:flex; align-items:center; justify-content:center;
+            background:@(rightTab == TabBase ? "#2a2b33" : "transparent");
+            border:1px solid #3a3b44; border-radius:6px; color:#cdd4f5;
+            font-weight:700; padding:8px 10px; cursor:pointer;">
+                    🏝️ Base
                 </button>
             </div>
 
@@ -424,6 +427,10 @@
             else if (rightTab == TabGear)
             {
                 <GearPanel />
+            }
+            else if (rightTab == TabBase)
+            {
+                @BasePanel()
             }
         </aside>
     </div>
@@ -1102,14 +1109,14 @@ private void CfClear() { cfPickedHeads = null; cfOutcome = string.Empty; cfFace 
 
 private const string TabInventory = "Inventory";
 private const string TabGear = "Gear";
+    private const string TabBase = "Base";
+    private string? rightTab;
 
-private string? rightTab = TabInventory;
-
-private void ToggleRight(string tab)
-{
-    rightTab = (rightTab == tab) ? null : tab; // click again to hide
-    StateHasChanged();
-}
+    private void ToggleRight(string tab)
+    {
+        rightTab = rightTab == tab ? null : tab;
+        StateHasChanged();
+    }
 
 private string craftTab = "Materials";
 
@@ -1192,5 +1199,162 @@ private void SetCraft(string tab)
         var pct = Math.Clamp((int)Math.Round(100.0 * count / target), 0, 100);
         return $"{pct}%";
     }
+    private RenderFragment BasePanel() => __builder =>
+    {
+        <div class="card" style="padding:12px;">
+            <h3 style="margin:0 0 10px 0;">Base</h3>
 
+            <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
+                @foreach (var b in _baseBuildings)
+                {
+                    var lv = GS.GetBaseLevel(b.Id);
+                    <div class="card" style="padding:10px; cursor:pointer;" @onclick="(() => OpenBase(b))">
+                        <div style="font-size:28px; margin-bottom:6px;">@b.Icon</div>
+                        <div style="font-weight:700;">@b.Name</div>
+                        <div class="small" style="opacity:.85;margin-top:2px;">
+                            @(lv == 0 ? "Not built" : $"Level {lv}")
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (showBaseModal && selectedB is not null && selectedCost is not null)
+        {
+            <div style="
+                        position:fixed; inset:0; background:rgba(0,0,0,.45);
+                        display:flex; align-items:center; justify-content:center; z-index:1000;"
+                 @onclick="CloseBase">
+                <div class="card" style="min-width:420px; max-width:520px; padding:14px; border:1px solid #2b2c33;"
+                     @onclick:stopPropagation="true">
+                    @{
+                        var lv = GS.GetBaseLevel(selectedB.Id);
+                        var nextLv = lv + 1;
+                        var buffNow = selectedB.BuffPerLevel * lv;
+                        var buffNext = selectedB.BuffPerLevel * nextLv;
+                        bool afford = CanAfford(selectedCost);
+                    }
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="font-size:28px;">@selectedB.Icon</div>
+                        <div>
+                            <div style="font-weight:800;">@selectedB.Name</div>
+                            <div class="small" style="opacity:.85;">@(lv == 0 ? "Not built" : $"Level {lv}") → Level @nextLv</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <div style="font-weight:700;">@selectedB.BuffTitle</div>
+                        <div class="small" style="opacity:.9;">
+                            @((buffNow * 100).ToString("0.#"))% → @((buffNext * 100).ToString("0.#"))%
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <div style="font-weight:700; margin-bottom:4px;">Construction Costs</div>
+                        @foreach (var kv in selectedCost)
+                        {
+                            var have = Math.Floor(GS.GetAmount(kv.Key));
+                            var need = Math.Floor(kv.Value);
+                            var ok = have >= need;
+                            var nice = ItemRegistry.TryGet(kv.Key, out var meta) ? meta.Name : NiceId(kv.Key);
+                            <div class="small" style="display:flex; justify-content:space-between; gap:8px;">
+                                <span>@nice</span>
+                                <span style="color:@(ok ? "#9fd18b" : "#f59b9b")">@have / @need</span>
+                            </div>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(baseMsg))
+                    {
+                        <p class="small" style="color:#f7b3b3; margin-top:8px;">@baseMsg</p>
+                    }
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn" disabled="@(!afford)" @onclick="BuildSelected">
+                            @(lv == 0 ? "Build" : "Upgrade")
+                        </button>
+                        <button class="btn ghost" @onclick="CloseBase">Close</button>
+                    </div>
+                </div>
+            </div>
+        }
+    };
+
+    // ---------- Base panel model ----------
+    private record BaseBuilding(
+        string Id,
+        string Name,
+        string Icon,
+        string BuffTitle,
+        double BuffPerLevel,                            // e.g., 0.015 == +1.5%
+        double CostScale,                               // cost growth per level, e.g., 1.8
+        IReadOnlyDictionary<string, double> CostL1);    // base costs for Level 1
+
+    private readonly BaseBuilding[] _baseBuildings =
+    {
+    new BaseBuilding(
+        Id: "shed",
+        Name: "Shed",
+        Icon: "🏚️",
+        BuffTitle: "Woodcutting Efficiency",
+        BuffPerLevel: 0.015,                         // +1.5% per level
+        CostScale: 1.8,
+        CostL1: new Dictionary<string, double>
+        {
+            [ResourceIds.Coins] = 500_000,
+            ["plank_t1"]       = 75,
+            ["log_t1"]         = 1500,
+        })
+};
+
+    // Compute scaled cost for next level
+    private Dictionary<string, double> NextCost(BaseBuilding b, int currentLevel)
+    {
+        // Lv1 uses CostL1; Lv2 uses CostL1 * scale; Lv3 uses * scale^2, etc.
+        var mul = Math.Pow(b.CostScale, Math.Max(0, currentLevel));
+        return b.CostL1.ToDictionary(kv => kv.Key, kv => Math.Ceiling(kv.Value * mul));
+    }
+
+    private bool CanAfford(Dictionary<string, double> cost)
+    {
+        foreach (var kv in cost)
+            if (GS.GetAmount(kv.Key) + 1e-9 < kv.Value) return false;
+        return true;
+    }
+
+    // Modal state
+    private bool showBaseModal;
+    private BaseBuilding? selectedB;
+    private Dictionary<string, double>? selectedCost;
+
+    private void OpenBase(BaseBuilding b)
+    {
+        selectedB = b;
+        selectedCost = NextCost(b, GS.GetBaseLevel(b.Id));
+        showBaseModal = true;
+    }
+
+    private void CloseBase() { showBaseModal = false; selectedB = null; selectedCost = null; }
+    private string? baseMsg;
+
+    private void BuildSelected()
+    {
+        if (selectedB is null || selectedCost is null) return;
+
+        baseMsg = null;
+
+        if (GS.TryUpgradeBase(selectedB.Id, selectedCost))
+        {
+            // refresh next-level cost
+            selectedCost = NextCost(selectedB, GS.GetBaseLevel(selectedB.Id));
+        }
+        else
+        {
+            baseMsg = "Not enough resources.";
+        }
+    }
+    private static string NiceId(string id)
+    {
+        // simple fallback prettifier
+        var s = id.Replace(':', ' ').Replace('_', ' ').Trim();
+        return System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s);
+    }
 }

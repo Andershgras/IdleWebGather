@@ -66,6 +66,12 @@ namespace IdleGatherWebGame.Services
         public void Info(string icon, string message, double seconds = 2.5) => PushToast(icon, message, seconds);
         private readonly Dictionary<string, long> _masteryCounts = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, int> _masteryTiers = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _baseLevels = new(StringComparer.OrdinalIgnoreCase);
+        // Example global buff from buildings (can expand later)
+        private double _woodcuttingEffBonus; // 0.015 == +1.5%
+        public double WoodcuttingEfficiencyBonus => _woodcuttingEffBonus;
+
+        public int GetBaseLevel(string id) => _baseLevels.TryGetValue(id, out var lv) ? lv : 0;
 
         public sealed class CraftRecipe
         {
@@ -513,6 +519,7 @@ namespace IdleGatherWebGame.Services
             data.MinigameGamesPlayed = _minigameGamesPlayed;
             data.MasteryCounts = new(_masteryCounts);
             data.MasteryTiers = new(_masteryTiers);
+            data.BaseLevels = new(_baseLevels);
 
             data.Equipment = _equipment
     .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
@@ -557,6 +564,13 @@ namespace IdleGatherWebGame.Services
             _minigameHighScores = data.MinigameHighScores ?? new(StringComparer.OrdinalIgnoreCase);
             _minigameGamesPlayed = Math.Max(0, data.MinigameGamesPlayed);
             _equipment.Keys.ToList().ForEach(k => _equipment[k] = null); // clear
+            _baseLevels.Clear();
+            if (data.BaseLevels != null)
+                foreach (var kv in data.BaseLevels) _baseLevels[kv.Key] = Math.Max(0, kv.Value);
+
+            // Re-apply base effects from loaded levels (so buffs are live after load)
+            foreach (var kv in _baseLevels)
+                ApplyBaseEffect(kv.Key, kv.Value);
             _masteryCounts.Clear();
             if (data.MasteryCounts != null)
                 foreach (var kv in data.MasteryCounts) _masteryCounts[kv.Key] = Math.Max(0, kv.Value);
@@ -937,5 +951,43 @@ namespace IdleGatherWebGame.Services
 
         // Tier target curve (10, 100, 1,000, …)
         public static long MasteryTierTarget(int nextTier) => (long)Math.Pow(10, nextTier);
+        public bool TryUpgradeBase(string id, IReadOnlyDictionary<string, double> cost)
+        {
+            // Check affordability
+            foreach (var kv in cost)
+            {
+                var have = GetAmount(kv.Key);
+                if (have + 1e-9 < kv.Value) return false;
+            }
+            // Deduct (round to int)
+            foreach (var kv in cost)
+                Add(kv.Key, -(int)Math.Round(kv.Value));
+
+            // Level up
+            var next = GetBaseLevel(id) + 1;
+            _baseLevels[id] = next;
+
+            ApplyBaseEffect(id, next);
+
+            PushToast("🏗️", $"{IdToNice(id)} upgraded to Lv {next}");
+            OnChange?.Invoke();
+            return true;
+        }
+
+        /// Apply building effects. Extend this switch as you add more buildings.
+        public void ApplyBaseEffect(string id, int newLevel)
+        {
+            switch (id)
+            {
+                case "shed":
+                    // Each level grants +1.5% woodcutting efficiency
+                    _woodcuttingEffBonus = newLevel * 0.015;
+                    break;
+
+                    // add other buildings here
+            }
+            OnChange?.Invoke();
+        }
     }
+
 }
