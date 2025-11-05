@@ -1202,8 +1202,16 @@ private void SetCraft(string tab)
     private RenderFragment BasePanel() => __builder =>
     {
         <div class="card" style="padding:12px;">
-            <h3 style="margin:0 0 10px 0;">Base</h3>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <h3 style="margin:0;">Base</h3>
 
+                <!-- New: Buffs button -->
+                <button class="btn ghost small" @onclick="OpenBuffs" title="View active base buffs">
+                    ✨ Buffs
+                </button>
+            </div>
+
+            <!-- your existing buildings grid here -->
             <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
                 @foreach (var b in _baseBuildings)
                 {
@@ -1272,6 +1280,36 @@ private void SetCraft(string tab)
                             @(lv == 0 ? "Build" : "Upgrade")
                         </button>
                         <button class="btn ghost" @onclick="CloseBase">Close</button>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (showBuffsModal)
+        {
+            <div style="
+                        position:fixed; inset:0; background:rgba(0,0,0,.45);
+                        display:flex; align-items:center; justify-content:center; z-index:1000;"
+                 @onclick="CloseBuffs">
+
+                <div class="card" style="min-width:420px; max-width:520px; padding:14px; border:1px solid #2b2c33;"
+                     @onclick:stopPropagation="true">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <h3 style="margin:0;">Base Buffs</h3>
+                        <button class="btn tiny ghost" @onclick="CloseBuffs">Close</button>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <div style="font-weight:800; margin-bottom:4px;">Woodcutting</div>
+                        @{
+                            // Show the current effective efficiency bonus (e.g., 3.0%)
+                            var woodEffPct = (GS.WoodcuttingEfficiencyBonus * 100.0).ToString("0.###") + "%";
+                        }
+                        <div class="small">Efficiency: <b>@woodEffPct</b></div>
+                    </div>
+
+                    @* Future: add Mining/Crafting/Smelting once you implement those buffs *@
+                    <div style="margin-top:12px; opacity:.7;" class="small">
+                        More buff categories coming soon…
                     </div>
                 </div>
             </div>
@@ -1357,4 +1395,8 @@ private void SetCraft(string tab)
         var s = id.Replace(':', ' ').Replace('_', ' ').Trim();
         return System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s);
     }
+    // ---- Base: Buffs modal state ----
+private bool showBuffsModal;
+private void OpenBuffs() { showBuffsModal = true; }
+private void CloseBuffs() { showBuffsModal = false; }
 }
