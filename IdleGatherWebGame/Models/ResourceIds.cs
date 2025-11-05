@@ -9,5 +9,9 @@
         public const string GoldOre = "gold_ore";
         public const string MithrilOre = "mithril_ore";
         public const string AdamantOre = "adamant_ore";
+        //Currencies
+        public const string Coins = "coins";
+        public const string Chips = "chips";
+        public const string MasteryToken = "mastery_token";
     }
 }

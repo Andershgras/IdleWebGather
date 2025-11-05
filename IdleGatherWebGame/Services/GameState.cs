@@ -904,10 +904,18 @@ namespace IdleGatherWebGame.Services
             {
                 currentTier++;
                 unlocked++;
-                // Reward
+
+                // XP reward for new tier
                 var reward = MasteryTierXpReward(currentTier);
                 Mastery.AddXp(reward);
                 GrantOverallXp(Math.Max(1, reward * 0.25));
+
+                // 🎟️ Token reward for new tier
+                int tokenReward = (currentTier == 1) ? 2 : 1;
+                Add(ResourceIds.MasteryToken, tokenReward);
+                PushToast("🎟️", $"+{tokenReward} Mastery Token{(tokenReward > 1 ? "s" : "")}");
+
+                // Announce tier unlock
                 PushToast("🏆", $"Mastery Tier {currentTier} unlocked: {NiceMasteryId(masteryId)}");
             }
 

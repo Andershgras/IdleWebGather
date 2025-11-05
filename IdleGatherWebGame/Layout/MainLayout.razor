@@ -267,10 +267,6 @@
                         <input class="input" maxlength="16" @bind="rename" />
                         <button class="btn" @onclick="@Rename">Save</button>
                     </div>
-                    <div class="row gap">
-                        <button class="btn" @onclick="async () => await GS.SaveToLocalAsync(force: true)">Save now</button>
-                        <button class="btn ghost" @onclick="async () => { await GS.ClearLocalAsync(); }">Clear local save</button>
-                    </div>
                 }
             }
             else if (leftTab == "Mastery")
@@ -543,6 +539,7 @@
         // Currency
         ["chips"] = new InvMeta("chips", "Chips", "Currencies", IMG_COINS, "Casino chips used to play games."),
         ["coins"] = new InvMeta("coins", "Coins", "Currencies", IMG_COINS, "The main currency."),
+		["mastery_token"] = new InvMeta("mastery_token", "Mastery Token", "Currencies", IMG_KEYS, "Token used to unlock mastery rewards."),
         // Logs
         ["log_t1"] = new InvMeta("log_t1", "Log (T1)", "Resources", IMG_WOOD, "Common logs from shrubs."),
         ["log_t2"] = new InvMeta("log_t2", "Log (T2)", "Resources", IMG_WOOD, "Sturdy oak logs."),
