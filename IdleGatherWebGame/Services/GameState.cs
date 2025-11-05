@@ -815,5 +815,54 @@ namespace IdleGatherWebGame.Services
                 OnChange?.Invoke();
             }
         }
+        // Casino XP anti-exploit accounting
+        private readonly Queue<(DateTime, double)> _casinoXpWindow = new();
+        private double _casinoXpAwardedToday = 0;
+        private DateOnly _casinoXpDay = DateOnly.FromDateTime(DateTime.UtcNow);
+        public void AwardCasinoXpFromBet(int betAmount, bool won)
+        {
+            if (betAmount <= 0) return;
+
+            // 1) Sub-linear scaling (tunable)
+            const double K = 1.4;
+            double xpBase = K * Math.Sqrt(betAmount);
+            if (won) xpBase *= 1.10; // tiny win bonus (optional)
+
+            var now = DateTime.UtcNow;
+
+            // 2) Rolling per-minute cap (tunable)
+            const double PER_MIN_CAP = 50;
+
+            // prune entries older than 60s
+            while (_casinoXpWindow.Count > 0 && (now - _casinoXpWindow.Peek().Item1).TotalSeconds > 60)
+                _casinoXpWindow.Dequeue();
+
+            double windowSoFar = 0;
+            foreach (var (_, xp) in _casinoXpWindow) windowSoFar += xp;
+
+            double headroomWindow = Math.Max(0, PER_MIN_CAP - windowSoFar);
+            if (headroomWindow <= 0) return;
+
+            // 3) Daily cap (tunable & optionally scale with level)
+            var today = DateOnly.FromDateTime(now);
+            if (today != _casinoXpDay) { _casinoXpDay = today; _casinoXpAwardedToday = 0; }
+
+            double dailyCap = 300 + 50 * Casino.Level; // adjust to taste
+            double headroomDaily = Math.Max(0, dailyCap - _casinoXpAwardedToday);
+            if (headroomDaily <= 0) return;
+
+            // Final grant (respect both caps)
+            double grant = Math.Min(xpBase, Math.Min(headroomWindow, headroomDaily));
+            if (grant <= 0) return;
+
+            // Record usage for caps
+            _casinoXpWindow.Enqueue((now, grant));
+            _casinoXpAwardedToday += grant;
+
+            // Apply XP like your minigames pattern
+            Casino.AddXp(grant);
+            GrantOverallXp(Math.Max(1, grant * 0.25));
+        }
+
     }
 }
