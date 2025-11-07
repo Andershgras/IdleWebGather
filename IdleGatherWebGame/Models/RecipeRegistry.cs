@@ -156,4 +156,22 @@ public static class RecipeRegistry
             XpPerCycle = 34
         },
     };
+    public static readonly List<GameState.CraftRecipe> Tools = new()
+{
+    new GameState.CraftRecipe
+    {
+        Id = "axe_t1",
+        Name = "Axe (T1)",
+        Icon = "🪓",
+        RequiredLevel = 1,
+        Duration = TimeSpan.FromSeconds(8),
+        Inputs = new()
+        {
+            new("plank_t1", 12),
+            new("copper_ore", 6)
+        },
+        Outputs = new() { new("axe_t1", 1) },
+        XpPerCycle = 15
+    },
+};
 }

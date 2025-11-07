@@ -26,8 +26,6 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyDictionary<string, Resource> Resources => _resources;
         public IReadOnlyList<WorkNode> TreeNodes => _trees;
         public IReadOnlyList<WorkNode> OreNodes => _ores;
-        public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
-        public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
         #region Skill ShortCuts
         public Skill Clicking => Skills.Get(SkillIds.Clicking);
         public Skill Minigames => Skills.Get(SkillIds.Minigames);
@@ -51,8 +49,14 @@ namespace IdleGatherWebGame.Services
         private Dictionary<string, Resource> _resources = [];
         private List<WorkNode> _trees = [];
         private List<WorkNode> _ores = [];
+        #region CraftRecipes
         private List<CraftRecipe> _recipes = [];
         private List<CraftRecipe> _smelt = [];
+        private List<CraftRecipe> _tools = [];
+        public IReadOnlyList<CraftRecipe> CraftingRecipes => _recipes;
+        public IReadOnlyList<CraftRecipe> SmeltingRecipes => _smelt;
+        public IReadOnlyList<CraftRecipe> ToolRecipes => _tools;
+        #endregion
         private ActiveJob? _job;
         private readonly Timer _timer;
         public string? ActiveGatherNodeId => _job?.Node?.Id;
@@ -491,6 +495,7 @@ namespace IdleGatherWebGame.Services
                 .ToList();
             _recipes = RecipeRegistry.Crafting.ToList();
             _smelt = RecipeRegistry.Smelting.ToList();
+            _tools = RecipeRegistry.Tools.ToList();
         }
         private PlayerData ToPlayerData()
         {

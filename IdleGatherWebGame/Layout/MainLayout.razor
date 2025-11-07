@@ -207,7 +207,7 @@
                 }
                 else if (craftTab == "Tools")
                 {
-                    <div class="card"><p>Tools crafting — WIP</p></div>
+                    @ToolsArea()
                 }
                 else if (craftTab == "Main Hand")
                 {
@@ -593,6 +593,8 @@
         ["gold_bar"] = new InvMeta("gold_bar", "Gold Bar", "Materials", IMG_BAR, "Smelted metal."),
         ["mith_bar"] = new InvMeta("mith_bar", "Mithril Bar", "Materials", IMG_BAR, "Smelted metal."),
         ["adam_bar"] = new InvMeta("adam_bar", "Adamant Bar", "Materials", IMG_BAR, "Smelted metal."),
+        // Tools
+        ["axe_t1"] = new InvMeta("axe_t1", "Axe (T1)", "Tools", IMG_PLANK, "A basic woodcutting tool."),
     };
     // sell-panel state
     string? selectedItemId = null;
@@ -1428,4 +1430,55 @@ private void CloseBuffs() { showBuffsModal = false; }
         if (rightTab == TabInventory && selectedItemId is not null)
             CloseSellPanel();
     }
+    RenderFragment ToolsArea() => __builder =>
+{
+    <h2>Tools</h2>
+
+    <div class="tree-grid">
+        @foreach (var r in GS.ToolRecipes)
+        {
+            var locked = GS.Crafting.Level < r.RequiredLevel;
+            var isActive = GS.ActiveRecipeId == r.Id;
+
+            <div class="tree-card @(locked ? "locked" : "") @(isActive ? "active-gather" : "")"
+                 style="@(isActive ? "outline:2px solid #0d6efd; background:rgba(13,110,253,.06);" : null)"
+                 @onclick="@(() => { if (!locked) { selectedRecipe = r; showCraft = true; craftMsg = ""; } })">
+                <div class="tree-icon">@r.Icon</div>
+                <div class="tree-name">@r.Name</div>
+                <div class="tree-req">Req Lv @r.RequiredLevel</div>
+            </div>
+        }
+    </div>
+
+    @if (showCraft && selectedRecipe is not null && GS.ToolRecipes.Contains(selectedRecipe))
+    {
+        var r = selectedRecipe!;
+        <div class="info card">
+            <h3>@r.Name</h3>
+            <div class="kv"><span>Requires:</span> <span>Crafting Lv @r.RequiredLevel</span></div>
+            <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
+            <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
+            <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+
+            <div class="row gap">
+                <label>Craft (0 = ∞):</label>
+                <input class="input small" type="number" min="0" @bind="craftCount" @bind:event="oninput" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(craftMsg))
+            {
+                <p class="small" style="color:#f7b3b3">@craftMsg</p>
+            }
+
+            <div class="row gap">
+                <button class="btn" type="button"
+                        disabled="@(GS.Crafting.Level < r.RequiredLevel || !HasInputsOnce(r))"
+                        @onclick="@(() => TryStartCraft(r))">
+                    Start
+                </button>
+                <button class="btn ghost" type="button" @onclick="@(() => showCraft = false)">Close</button>
+            </div>
+        </div>
+    }
+};
 }

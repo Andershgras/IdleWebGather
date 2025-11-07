@@ -48,6 +48,8 @@ public static class ItemRegistry
         ["gold_bar"] = new("gold_bar", "Gold Bar", "Bars", "🔩", 30),
         ["mith_bar"] = new("mith_bar", "Mithril Bar", "Bars", "🔩", 40),
         ["adam_bar"] = new("adam_bar", "Adamant Bar", "Bars", "🔩", 55),
+        // Tools
+        ["axe_t1"] = new("axe_t1", "Axe (T1)", "Tools", "🪓", null),
     };
 
     public static bool TryGet(string id, out ItemMeta meta) => _byId.TryGetValue(id, out meta);
