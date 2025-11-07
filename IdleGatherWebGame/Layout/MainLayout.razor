@@ -297,8 +297,9 @@
                         }
         </section>
         <!-- Right column -->
-        <aside class="right card">
-
+        <aside class="right card"
+               tabindex="0"
+               @onmousedown="HandleRightClickAway">
             <!-- Tabs -->
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <button @onclick='() => ToggleRight(TabInventory)'
@@ -351,7 +352,9 @@
                                     var amt = item.Amount;
                                     var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
 
-                                    <div class="inv-item" @onclick="@(() => OpenItemPanel(id, amt))">
+                                    <div class="inv-item"
+                                        @onmousedown:stopPropagation="true"
+                                        @onclick="@(() => OpenItemPanel(id, amt))">
                                         @if (ItemRegistry.TryGet(id, out var meta))
                                         {
                                             if (LooksLikeImage(meta.Icon))
@@ -392,7 +395,7 @@
                                 var meta = group.Items.First(i => i.Meta.Id == selectedItemId).Meta;
                                 var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
 
-                                <div class="sell-panel card">
+                                <div class="sell-panel card" @onmousedown:stopPropagation="true">
                                     <div class="sell-title">@Math.Floor(SelectedItemOwned) @meta.Name</div>
 
                                     <div class="sell-row">
@@ -1399,4 +1402,18 @@ private void SetCraft(string tab)
 private bool showBuffsModal;
 private void OpenBuffs() { showBuffsModal = true; }
 private void CloseBuffs() { showBuffsModal = false; }
+    // Close the sell panel
+    private void CloseSellPanel()
+    {
+        selectedItemId = null;
+        sellAmount = 1;
+        StateHasChanged();
+    }
+
+    // Click-away handler (only active when inventory tab is open)
+    private void HandleRightClickAway(Microsoft.AspNetCore.Components.Web.MouseEventArgs _)
+    {
+        if (rightTab == TabInventory && selectedItemId is not null)
+            CloseSellPanel();
+    }
 }
