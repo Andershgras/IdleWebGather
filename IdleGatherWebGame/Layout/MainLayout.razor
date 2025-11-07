@@ -467,10 +467,7 @@
     // ----- lifecycle / autosave wiring -----
     private bool _autosaveHooked = false;
 
-    protected override void OnInitialized()
-    {
-        GS.OnChange += StateHasChanged;
-    }
+    private bool _subscribed;
 
     // Load after first render (JS runtime ready) + hook autosave once
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -479,17 +476,32 @@
 
         await GS.LoadFromLocalAsync();
 
-        if (!_autosaveHooked)
+        if (!_subscribed)
         {
-            GS.OnChange += async () => await GS.SaveToLocalAsync(); // debounced in GameState
-            _autosaveHooked = true;
+            GS.OnChange += StateHasChanged;
+            GS.OnChange += OnGameStateChanged;
+            _subscribed = true;
         }
     }
-
+    private async void OnGameStateChanged()
+    {
+        try
+        {
+            await GS.SaveToLocalAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Save failed: {ex.Message}");
+        }
+    }
     public void Dispose()
     {
-        GS.OnChange -= StateHasChanged;
-        // (we don't attempt to detach the autosave lambda; it's fine for app lifetime)
+        if (_subscribed)
+        {
+            GS.OnChange -= StateHasChanged;
+            GS.OnChange -= OnGameStateChanged;
+            _subscribed = false;
+        }
     }
 
     bool TryStart(WorkNode node)
