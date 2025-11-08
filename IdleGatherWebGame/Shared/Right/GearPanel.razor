@@ -37,17 +37,12 @@
 
     private void OnClickSlot(GearSlot slot)
     {
-        // Placeholder behavior:
-        // If something is equipped -> unequip it (this will toast if your Unequip() does).
-        // If empty -> no-op for now (later we’ll open an equip picker).
-        if (GS.GetEquipped(slot) is not null)
+        var equipped = GS.GetEquipped(slot);
+        if (equipped is not null)
         {
+            // Unequip (returns to inventory automatically)
             GS.Unequip(slot);
         }
-        else
-        {
-            // no-op until the equip picker is implemented
-            // (intentionally no direct toast call here)
-        }
+        // If empty, do nothing (equip via inventory panel instead)
     }
 }

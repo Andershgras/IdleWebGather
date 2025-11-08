@@ -41,7 +41,7 @@
                         <span>•</span>
                         <span>@GS.ActiveOutputText</span>
                         <span>•</span>
-                        <span>@GS.SecondsRemaining.ToString("0")s left</span>
+                        <span>@GS.AdjustedSecondsRemaining.ToString("0.#")s left</span>
                         @if (GS.ActiveCyclesRemaining.HasValue)
                         {
                             <span>•</span>
@@ -394,10 +394,20 @@
                             {
                                 var meta = group.Items.First(i => i.Meta.Id == selectedItemId).Meta;
                                 var hasPrice = GS.TryGetSellPrice(selectedItemId, out var p);
+                                var isTool = meta.Category == "Tools";
 
                                 <div class="sell-panel card" @onmousedown:stopPropagation="true">
                                     <div class="sell-title">@Math.Floor(SelectedItemOwned) @meta.Name</div>
-
+                                    @if (isTool)
+                                    {
+                                        <div class="sell-row">
+                                            <button class="btn wide"
+                                                    disabled="@(SelectedItemOwned < 1)"
+                                                    @onclick="EquipSelected">
+                                                Equip
+                                            </button>
+                                        </div>
+                                    }
                                     <div class="sell-row">
                                         <input class="input small" type="number" min="1" max="@MaxSellAll"
                                                @bind="sellAmount" @bind:event="oninput" />
@@ -1481,4 +1491,28 @@ private void CloseBuffs() { showBuffsModal = false; }
         </div>
     }
 };
+    void EquipSelected()
+    {
+        if (selectedItemId is null) return;
+
+        // Determine slot based on item ID
+        GearSlot? slot = selectedItemId switch
+        {
+            "axe_t1" => GearSlot.WoodTool,
+            // Add more mappings as you add tools
+            _ => null
+        };
+
+        if (slot is null)
+        {
+            // Shouldn't happen, but safety check
+            return;
+        }
+
+        if (GS.TryEquip(slot.Value, selectedItemId))
+        {
+            // Success - the GameState already shows toast
+            CloseSellPanel();
+        }
+    }
 }

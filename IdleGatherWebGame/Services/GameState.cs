@@ -74,6 +74,8 @@ namespace IdleGatherWebGame.Services
         // Example global buff from buildings (can expand later)
         private double _woodcuttingEffBonus; // 0.015 == +1.5%
         public double WoodcuttingEfficiencyBonus => _woodcuttingEffBonus;
+        private double _woodcuttingToolBonus;
+        public double WoodcuttingToolBonus => _woodcuttingToolBonus;
 
         public int GetBaseLevel(string id) => _baseLevels.TryGetValue(id, out var lv) ? lv : 0;
 
@@ -326,7 +328,7 @@ namespace IdleGatherWebGame.Services
             if (_job.Gather is not null)
             {
                 var g = _job.Gather;
-                var speedBonus = 1.0 + WoodcuttingEfficiencyBonus;
+                var speedBonus = 1.0 + WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
                 _job.Advance(TimeSpan.FromTicks((long)(dt.Ticks * speedBonus)));
                 if (!_job.Done) { OnChange?.Invoke(); return; }
 
@@ -641,6 +643,12 @@ namespace IdleGatherWebGame.Services
                     }
                 }
             }
+            foreach (var kv in data.Equipment ?? new Dictionary<string, string>())
+            {
+                if (Enum.TryParse<GearSlot>(kv.Key, out var slot))
+                    _equipment[slot] = kv.Value;
+            }
+            RecalculateToolBonuses();
             OnChange?.Invoke();
         }
         public void RegisterClick()
@@ -836,21 +844,51 @@ namespace IdleGatherWebGame.Services
         public IReadOnlyDictionary<GearSlot, string?> Equipment => _equipment;
         public string? GetEquipped(GearSlot slot) => _equipment.TryGetValue(slot, out var id) ? id : null;
 
-        public void Equip(GearSlot slot, string itemId)
+        public bool TryEquip(GearSlot slot, string itemId)
         {
+            // Check if we have at least 1 in inventory
+            var owned = GetAmount(itemId);
+            if (owned < 1) return false;
+
+            // Unequip current item if any (returns to inventory)
+            if (_equipment[slot] is not null)
+            {
+                Unequip(slot);
+            }
+
+            // Consume 1 from inventory
+            if (_resources.TryGetValue(itemId, out var res))
+            {
+                _resources[itemId] = res with { Amount = Math.Max(0, res.Amount - 1) };
+            }
+
+            // Equip the item
             _equipment[slot] = itemId;
-            PushToast("🧰", $"Equipped {IdToNice(itemId)} in {slot}");
+
+            // Recalculate bonuses
+            RecalculateToolBonuses();
+
+            PushToast("🧰", $"Equipped {IdToNice(itemId)}");
             OnChange?.Invoke();
+            return true;
         }
 
         public void Unequip(GearSlot slot)
         {
-            if (_equipment.ContainsKey(slot))
-            {
-                _equipment[slot] = null;
-                PushToast("🧰", $"Unequipped {slot}");
-                OnChange?.Invoke();
-            }
+            if (!_equipment.TryGetValue(slot, out var itemId) || itemId is null)
+                return;
+
+            // Return to inventory
+            Add(itemId, 1);
+
+            // Clear slot
+            _equipment[slot] = null;
+
+            // Recalculate bonuses
+            RecalculateToolBonuses();
+
+            PushToast("🧰", $"Unequipped {IdToNice(itemId)}");
+            OnChange?.Invoke();
         }
         // Casino XP anti-exploit accounting
         private readonly Queue<(DateTime, double)> _casinoXpWindow = new();
@@ -993,6 +1031,46 @@ namespace IdleGatherWebGame.Services
                     // add other buildings here
             }
             OnChange?.Invoke();
+        }
+        private void RecalculateToolBonuses()
+        {
+            // Reset
+            _woodcuttingToolBonus = 0;
+
+            // Check woodcutting tool slot
+            var woodTool = GetEquipped(GearSlot.WoodTool);
+            if (woodTool is not null)
+            {
+                _woodcuttingToolBonus = woodTool switch
+                {
+                    "axe_t1" => 0.15, // 15% bonus
+                                      // Add more tools here later
+                    _ => 0
+                };
+            }
+
+            // Future: Add other tool types (mining, crafting, smelting)
+        }
+        public double AdjustedSecondsRemaining
+        {
+            get
+            {
+                if (_job is null) return 0;
+
+                var speedBonus = 1.0;
+
+                // Apply speed bonuses based on job type
+                if (_job.Gather is not null && _job.Type == JobType.Woodcutting)
+                {
+                    speedBonus = 1.0 + WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
+                }
+                // Future: add mining, crafting, smelting bonuses here
+
+                var adjustedDuration = _job.Duration.TotalSeconds / speedBonus;
+                var adjustedElapsed = _job.Elapsed.TotalSeconds / speedBonus;
+
+                return Math.Max(0, adjustedDuration - adjustedElapsed);
+            }
         }
     }
 
