@@ -1037,3 +1037,51 @@ code {
     font-size: 28px; /* for emoji */
     background: rgba(255,255,255,.04);
 }
+/* ===== Gather/Craft Modal ===== */
+.modal-box {
+    min-width: 420px;
+    max-width: 520px;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.modal-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--line);
+}
+
+    .modal-row:last-of-type {
+        border-bottom: none;
+    }
+
+.modal-label {
+    font-weight: 700;
+    min-width: 90px;
+    color: var(--muted);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+
+    .modal-actions .btn {
+        flex: 1;
+    }
+
+.error-msg {
+    color: #f7b3b3;
+    font-size: 0.9rem;
+    margin: 0.75rem 0 0 0;
+    padding: 8px 12px;
+    background: rgba(247, 179, 179, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(247, 179, 179, 0.2);
+}

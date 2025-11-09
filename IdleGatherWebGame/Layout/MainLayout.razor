@@ -158,29 +158,63 @@
                         </div>
                     }
                 </div>
-
                 @if (showInfo && selectedTree is not null)
                 {
                     var node = selectedTree!;
-                    <div class="info card">
-                        <h3>@node.Name</h3>
-                        <div class="kv"><span>Requires:</span> <span>Woodcutting Lv @node.RequiredLevel</span></div>
-                        <div class="kv"><span>Outputs:</span> <span>@Math.Round(node.XpPerCycle) XP &nbsp; | &nbsp; @Math.Round(node.MinYield)–@Math.Round(node.MaxYield) logs</span></div>
-                        <div class="kv"><span>Duration:</span> <span>@node.Duration.TotalSeconds.ToString("0.#")s</span></div>
+                    <div class="modal-overlay" @onclick="CloseGatherModal">
+                        <div class="modal-box card" @onclick:stopPropagation="true">
+                            <h3 style="margin:0 0 1rem 0;">@node.Name</h3>
 
-                        <div class="row gap">
-                            <label>Gather (0 = ∞):</label>
-                            <input class="input small" type="number" min="0" @bind="gatherCount" @bind:event="oninput" />
-                        </div>
+                            <div class="modal-row">
+                                <span class="modal-label">Requires:</span>
+                                <span>Woodcutting Lv @node.RequiredLevel</span>
+                            </div>
 
-                        @if (!string.IsNullOrEmpty(startMsg))
-                        {
-                            <p class="small" style="color:#f7b3b3">@startMsg</p>
-                        }
+                            <div class="modal-row">
+                                <span class="modal-label">Outputs:</span>
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <span>⭐ @Math.Round(node.XpPerCycle) XP</span>
+                                    <span>•</span>
+                                    <span>@Math.Round(node.MinYield)–@Math.Round(node.MaxYield) Logs</span>
+                                </div>
+                            </div>
 
-                        <div class="row gap">
-                            <button class="btn" type="button" disabled="@(!GS.CanChop(node))" @onclick="@(() => TryStart(node))">Start</button>
-                            <button class="btn ghost" type="button" @onclick="@(() => showInfo = false)">Close</button>
+                            <div class="modal-row">
+                                <span class="modal-label">Duration:</span>
+                                <span>@node.Duration.TotalSeconds.ToString("0.#")s</span>
+                            </div>
+
+                            <div class="modal-row" style="margin-top:1rem;">
+                                <span class="modal-label">Gather:</span>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    @if (gatherCount == 0)
+                                    {
+                                        <span style="font-size:1.2rem;">∞</span>
+                                    }
+                                    else
+                                    {
+                                        <input class="input small" type="number" min="1"
+                                               style="width:80px;"
+                                               @bind="gatherCount" @bind:event="oninput" />
+                                    }
+                                    <button class="btn tiny ghost" @onclick="@(() => gatherCount = 1)">1</button>
+                                    <button class="btn tiny ghost" @onclick="@(() => gatherCount = 0)">∞</button>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(startMsg))
+                            {
+                                <p class="error-msg">@startMsg</p>
+                            }
+
+                            <div class="modal-actions">
+                                <button class="btn"
+                                        disabled="@(!GS.CanChop(node))"
+                                        @onclick="@(() => TryStart(node))">
+                                    Start Now
+                                </button>
+                                <button class="btn ghost" @onclick="CloseGatherModal">Cancel</button>
+                            </div>
                         </div>
                     </div>
                 }
@@ -532,8 +566,14 @@
         }
 
         bool ok = GS.StartChop(node, cycles);
-        startMsg = ok ? "" : "Could not start job (unexpected).";
-        showInfo = true;
+        if (ok)
+        {
+            CloseGatherModal();
+        }
+        else
+        {
+            startMsg = "Could not start job (unexpected).";
+        }
         StateHasChanged();
         return ok;
     }
@@ -605,6 +645,19 @@
         ["adam_bar"] = new InvMeta("adam_bar", "Adamant Bar", "Materials", IMG_BAR, "Smelted metal."),
         // Tools
         ["axe_t1"] = new InvMeta("axe_t1", "Axe (T1)", "Tools", IMG_PLANK, "A basic woodcutting tool."),
+        ["axe_t2"] = new InvMeta("axe_t2", "Axe (T2)", "Tools", IMG_PLANK, "An improved woodcutting tool."),
+        ["axe_t3"] = new InvMeta("axe_t3", "Axe (T3)", "Tools", IMG_PLANK, "An advanced woodcutting tool."),
+        ["axe_t4"] = new InvMeta("axe_t4", "Axe (T4)", "Tools", IMG_PLANK, "A masterwork woodcutting tool."),
+
+        ["saw_t1"] = new InvMeta("saw_t1", "Saw (T1)", "Tools", IMG_PLANK, "A basic crafting tool."),
+        ["saw_t2"] = new InvMeta("saw_t2", "Saw (T2)", "Tools", IMG_PLANK, "An improved crafting tool."),
+        ["saw_t3"] = new InvMeta("saw_t3", "Saw (T3)", "Tools", IMG_PLANK, "An advanced crafting tool."),
+        ["saw_t4"] = new InvMeta("saw_t4", "Saw (T4)", "Tools", IMG_PLANK, "A masterwork crafting tool."),
+
+        ["pickaxe_t1"] = new InvMeta("pickaxe_t1", "Pickaxe (T1)", "Tools", IMG_STONE, "A basic mining tool."),
+        ["pickaxe_t2"] = new InvMeta("pickaxe_t2", "Pickaxe (T2)", "Tools", IMG_STONE, "An improved mining tool."),
+        ["pickaxe_t3"] = new InvMeta("pickaxe_t3", "Pickaxe (T3)", "Tools", IMG_STONE, "An advanced mining tool."),
+        ["pickaxe_t4"] = new InvMeta("pickaxe_t4", "Pickaxe (T4)", "Tools", IMG_STONE, "A masterwork mining tool."),
     };
     // sell-panel state
     string? selectedItemId = null;
@@ -698,33 +751,63 @@
             }
         </div>
 
-        @if (showCraft && selectedRecipe is not null)
+        @if (showOre && selectedOre is not null)
         {
-            var r = selectedRecipe!;
-            <div class="info card">
-                <h3>@r.Name</h3>
-                <div class="kv"><span>Requires:</span> <span>Crafting Lv @r.RequiredLevel</span></div>
-                <div class="kv"><span>Inputs:</span> <span>@string.Join(", ", r.Inputs.Select(i => $"{i.Amount} {IdToNice(i.ResourceId)}"))</span></div>
-                <div class="kv"><span>Outputs:</span> <span>@string.Join(", ", r.Outputs.Select(o => $"{o.Amount} {IdToNice(o.ResourceId)}"))</span></div>
-                <div class="kv"><span>Duration:</span> <span>@r.Duration.TotalSeconds.ToString("0.#")s</span></div>
+            var n = selectedOre!;
+            <div class="modal-overlay" @onclick="CloseMiningModal">
+                <div class="modal-box card" @onclick:stopPropagation="true">
+                    <h3 style="margin:0 0 1rem 0;">@n.Name</h3>
 
-                <div class="row gap">
-                    <label>Craft (0 = ∞):</label>
-                    <input class="input small" type="number" min="0" @bind="craftCount" @bind:event="oninput" />
-                </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Requires:</span>
+                        <span>Mining Lv @n.RequiredLevel</span>
+                    </div>
 
-                @if (!string.IsNullOrEmpty(craftMsg))
-                {
-                    <p class="small" style="color:#f7b3b3">@craftMsg</p>
-                }
+                    <div class="modal-row">
+                        <span class="modal-label">Outputs:</span>
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <span>⭐ @Math.Round(n.XpPerCycle) XP</span>
+                            <span>•</span>
+                            <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) Ore</span>
+                        </div>
+                    </div>
 
-                <div class="row gap">
-                    <button class="btn" type="button"
-                            disabled="@(GS.Crafting.Level < r.RequiredLevel || !HasInputsOnce(r))"
-                            @onclick="@(() => TryStartCraft(r))">
-                        Start
-                    </button>
-                    <button class="btn ghost" type="button" @onclick="@(() => showCraft = false)">Close</button>
+                    <div class="modal-row">
+                        <span class="modal-label">Duration:</span>
+                        <span>@n.Duration.TotalSeconds.ToString("0.#")s</span>
+                    </div>
+
+                    <div class="modal-row" style="margin-top:1rem;">
+                        <span class="modal-label">Mine:</span>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            @if (mineCount == 0)
+                            {
+                                <span style="font-size:1.2rem;">∞</span>
+                            }
+                            else
+                            {
+                                <input class="input small" type="number" min="1"
+                                       style="width:80px;"
+                                       @bind="mineCount" @bind:event="oninput" />
+                            }
+                            <button class="btn tiny ghost" @onclick="@(() => mineCount = 1)">1</button>
+                            <button class="btn tiny ghost" @onclick="@(() => mineCount = 0)">∞</button>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(mineMsg))
+                    {
+                        <p class="error-msg">@mineMsg</p>
+                    }
+
+                    <div class="modal-actions">
+                        <button class="btn"
+                                disabled="@(!GS.CanMine(n))"
+                                @onclick="@(() => TryStartMine(n))">
+                            Start Now
+                        </button>
+                        <button class="btn ghost" @onclick="CloseMiningModal">Cancel</button>
+                    </div>
                 </div>
             </div>
         }
@@ -805,32 +888,60 @@
     @if (showOre && selectedOre is not null)
     {
         var n = selectedOre!;
-        <div class="info card">
-            <h3>@n.Name</h3>
-            <div class="kv"><span>Requires:</span> <span>Mining Lv @n.RequiredLevel</span></div>
-            <div class="kv"><span>Outputs:</span> <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) ore • @Math.Round(n.XpPerCycle) XP</span></div>
-            <div class="kv"><span>Duration:</span> <span>@n.Duration.TotalSeconds.ToString("0.#")s</span></div>
+        <div class="modal-overlay" @onclick="CloseMiningModal">
+            <div class="modal-box card" @onclick:stopPropagation="true">
+                <h3 style="margin:0 0 1rem 0;">@n.Name</h3>
 
-            <div class="row gap">
-                <label>Mine (0 = ∞):</label>
-                <input class="input small" type="number" min="0" @bind="mineCount" @bind:event="oninput" />
-            </div>
+                <div class="modal-row">
+                    <span class="modal-label">Requires:</span>
+                    <span>Mining Lv @n.RequiredLevel</span>
+                </div>
 
-            @if (!string.IsNullOrEmpty(mineMsg))
-            {
-                <p class="small" style="color:#f7b3b3">@mineMsg</p>
-            }
+                <div class="modal-row">
+                    <span class="modal-label">Outputs:</span>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <span>⭐ @Math.Round(n.XpPerCycle) XP</span>
+                        <span>•</span>
+                        <span>@Math.Round(n.MinYield)–@Math.Round(n.MaxYield) Ore</span>
+                    </div>
+                </div>
 
-            <div class="row gap">
-                <button class="btn" type="button"
-                        disabled="@(!GS.CanMine(n))"
-                        @onclick="@(() => TryStartMine(n))">
-                    Start
-                </button>
-                <button class="btn ghost" type="button"
-                        @onclick="@(() => showOre = false)">
-                    Close
-                </button>
+                <div class="modal-row">
+                    <span class="modal-label">Duration:</span>
+                    <span>@n.Duration.TotalSeconds.ToString("0.#")s</span>
+                </div>
+
+                <div class="modal-row" style="margin-top:1rem;">
+                    <span class="modal-label">Mine:</span>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        @if (mineCount == 0)
+                        {
+                            <span style="font-size:1.2rem;">∞</span>
+                        }
+                        else
+                        {
+                            <input class="input small" type="number" min="1"
+                                   style="width:80px;"
+                                   @bind="mineCount" @bind:event="oninput" />
+                        }
+                        <button class="btn tiny ghost" @onclick="@(() => mineCount = 1)">1</button>
+                        <button class="btn tiny ghost" @onclick="@(() => mineCount = 0)">∞</button>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(mineMsg))
+                {
+                    <p class="error-msg">@mineMsg</p>
+                }
+
+                <div class="modal-actions">
+                    <button class="btn"
+                            disabled="@(!GS.CanMine(n))"
+                            @onclick="@(() => TryStartMine(n))">
+                        Start Now
+                    </button>
+                    <button class="btn ghost" @onclick="CloseMiningModal">Cancel</button>
+                </div>
             </div>
         </div>
     }
@@ -842,7 +953,14 @@
         if (!GS.CanMine(n)) { mineMsg = $"Requires Mining Lv {n.RequiredLevel}."; StateHasChanged(); return false; }
         int? cycles = (mineCount <= 0) ? null : mineCount;
         var ok = GS.StartMine(n, cycles);
-        mineMsg = ok ? "" : "Could not start mining.";
+        if (ok)
+        {
+            CloseMiningModal(); // ← ADD
+        }
+        else
+        {
+            mineMsg = "Could not start mining.";
+        }
         StateHasChanged();
         return ok;
     }
@@ -1313,30 +1431,30 @@ private void SetCraft(string tab)
         }
         @if (showBuffsModal)
         {
-            <div style="
-                        position:fixed; inset:0; background:rgba(0,0,0,.45);
-                        display:flex; align-items:center; justify-content:center; z-index:1000;"
+            <div style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000;"
                  @onclick="CloseBuffs">
-
                 <div class="card" style="min-width:420px; max-width:520px; padding:14px; border:1px solid #2b2c33;"
                      @onclick:stopPropagation="true">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                        <h3 style="margin:0;">Base Buffs</h3>
+                        <h3 style="margin:0;">Active Buffs</h3>
                         <button class="btn tiny ghost" @onclick="CloseBuffs">Close</button>
                     </div>
 
                     <div style="margin-top:10px;">
                         <div style="font-weight:800; margin-bottom:4px;">Woodcutting</div>
-                        @{
-                            // Show the current effective efficiency bonus (e.g., 3.0%)
-                            var woodEffPct = (GS.WoodcuttingEfficiencyBonus * 100.0).ToString("0.###") + "%";
-                        }
-                        <div class="small">Efficiency: <b>@woodEffPct</b></div>
+                        <div class="small">Base Efficiency: <b>@((GS.WoodcuttingEfficiencyBonus * 100).ToString("0.#"))%</b></div>
+                        <div class="small">Tool Bonus: <b>@((GS.WoodcuttingToolBonus * 100).ToString("0.#"))%</b></div>
+                        <div class="small" style="margin-top:4px;">Total: <b>@(((GS.WoodcuttingEfficiencyBonus + GS.WoodcuttingToolBonus) * 100).ToString("0.#"))%</b></div>
                     </div>
 
-                    @* Future: add Mining/Crafting/Smelting once you implement those buffs *@
-                    <div style="margin-top:12px; opacity:.7;" class="small">
-                        More buff categories coming soon…
+                    <div style="margin-top:12px;">
+                        <div style="font-weight:800; margin-bottom:4px;">Crafting</div>
+                        <div class="small">Tool Bonus: <b>@((GS.CraftingToolBonus * 100).ToString("0.#"))%</b></div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <div style="font-weight:800; margin-bottom:4px;">Mining</div>
+                        <div class="small">Tool Bonus: <b>@((GS.MiningToolBonus * 100).ToString("0.#"))%</b></div>
                     </div>
                 </div>
             </div>
@@ -1498,16 +1616,18 @@ private void CloseBuffs() { showBuffsModal = false; }
         // Determine slot based on item ID
         GearSlot? slot = selectedItemId switch
         {
-            "axe_t1" => GearSlot.WoodTool,
-            // Add more mappings as you add tools
+            // Woodcutting tools
+            "axe_t1" or "axe_t2" or "axe_t3" or "axe_t4" => GearSlot.WoodTool,
+
+            // Crafting tools
+            "saw_t1" or "saw_t2" or "saw_t3" or "saw_t4" => GearSlot.CraftTool,
+
+            // Mining tools
+            "pickaxe_t1" or "pickaxe_t2" or "pickaxe_t3" or "pickaxe_t4" => GearSlot.MiningTool,
+
             _ => null
         };
-
-        if (slot is null)
-        {
-            // Shouldn't happen, but safety check
-            return;
-        }
+        if (slot is null) return;
 
         if (GS.TryEquip(slot.Value, selectedItemId))
         {
@@ -1515,4 +1635,15 @@ private void CloseBuffs() { showBuffsModal = false; }
             CloseSellPanel();
         }
     }
+    void CloseGatherModal()
+    {
+        showInfo = false;
+        startMsg = "";
+    }
+    void CloseMiningModal()
+    {
+        showOre = false;
+        mineMsg = "";
+    }
 }
+

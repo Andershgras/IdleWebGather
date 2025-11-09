@@ -76,6 +76,11 @@ namespace IdleGatherWebGame.Services
         public double WoodcuttingEfficiencyBonus => _woodcuttingEffBonus;
         private double _woodcuttingToolBonus;
         public double WoodcuttingToolBonus => _woodcuttingToolBonus;
+        private double _craftingToolBonus;
+        public double CraftingToolBonus => _craftingToolBonus;
+
+        private double _miningToolBonus;
+        public double MiningToolBonus => _miningToolBonus; 
 
         public int GetBaseLevel(string id) => _baseLevels.TryGetValue(id, out var lv) ? lv : 0;
 
@@ -328,7 +333,13 @@ namespace IdleGatherWebGame.Services
             if (_job.Gather is not null)
             {
                 var g = _job.Gather;
-                var speedBonus = 1.0 + WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
+                var speedBonus = 1.0;
+                // Apply appropriate bonus based on job type
+                if (_job.Type == JobType.Woodcutting)
+                    speedBonus += WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
+                else if (_job.Type == JobType.Mining)
+                    speedBonus += MiningToolBonus;
+
                 _job.Advance(TimeSpan.FromTicks((long)(dt.Ticks * speedBonus)));
                 if (!_job.Done) { OnChange?.Invoke(); return; }
 
@@ -359,8 +370,8 @@ namespace IdleGatherWebGame.Services
 
                 if (_job.Elapsed == TimeSpan.Zero && !HasInputsForOne(r))
                 { _job = null; OnChange?.Invoke(); return; }
-
-                _job.Advance(dt);
+                var speedBonus = 1.0 + CraftingToolBonus;
+                _job.Advance(TimeSpan.FromTicks((long)(dt.Ticks * speedBonus)));
                 if (!_job.Done) { OnChange?.Invoke(); return; }
 
                 // consume inputs
@@ -1034,22 +1045,52 @@ namespace IdleGatherWebGame.Services
         }
         private void RecalculateToolBonuses()
         {
-            // Reset
+            // Reset all
             _woodcuttingToolBonus = 0;
+            _craftingToolBonus = 0;
+            _miningToolBonus = 0;
 
-            // Check woodcutting tool slot
+            // Woodcutting tools (axes)
             var woodTool = GetEquipped(GearSlot.WoodTool);
             if (woodTool is not null)
             {
                 _woodcuttingToolBonus = woodTool switch
                 {
-                    "axe_t1" => 0.15, // 15% bonus
-                                      // Add more tools here later
+                    "axe_t1" => 0.15, // 15%
+                    "axe_t2" => 0.25, // 25%
+                    "axe_t3" => 0.35, // 35%
+                    "axe_t4" => 0.50, // 50%
                     _ => 0
                 };
             }
 
-            // Future: Add other tool types (mining, crafting, smelting)
+            // Crafting tools (saws)
+            var craftTool = GetEquipped(GearSlot.CraftTool);
+            if (craftTool is not null)
+            {
+                _craftingToolBonus = craftTool switch
+                {
+                    "saw_t1" => 0.15, // 15%
+                    "saw_t2" => 0.25, // 25%
+                    "saw_t3" => 0.35, // 35%
+                    "saw_t4" => 0.50, // 50%
+                    _ => 0
+                };
+            }
+
+            // Mining tools (pickaxes)
+            var miningTool = GetEquipped(GearSlot.MiningTool);
+            if (miningTool is not null)
+            {
+                _miningToolBonus = miningTool switch
+                {
+                    "pickaxe_t1" => 0.15, // 15%
+                    "pickaxe_t2" => 0.25, // 25%
+                    "pickaxe_t3" => 0.35, // 35%
+                    "pickaxe_t4" => 0.50, // 50%
+                    _ => 0
+                };
+            }
         }
         public double AdjustedSecondsRemaining
         {
@@ -1060,9 +1101,16 @@ namespace IdleGatherWebGame.Services
                 var speedBonus = 1.0;
 
                 // Apply speed bonuses based on job type
-                if (_job.Gather is not null && _job.Type == JobType.Woodcutting)
+                if (_job.Gather is not null)
                 {
-                    speedBonus = 1.0 + WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
+                    if (_job.Type == JobType.Woodcutting)
+                        speedBonus += WoodcuttingEfficiencyBonus + WoodcuttingToolBonus;
+                    else if (_job.Type == JobType.Mining)
+                        speedBonus += MiningToolBonus;
+                }
+                else if (_job.Type == JobType.Crafting)
+                {
+                    speedBonus += CraftingToolBonus;
                 }
                 // Future: add mining, crafting, smelting bonuses here
 

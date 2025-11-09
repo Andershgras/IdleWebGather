@@ -50,6 +50,19 @@ public static class ItemRegistry
         ["adam_bar"] = new("adam_bar", "Adamant Bar", "Bars", "🔩", 55),
         // Tools
         ["axe_t1"] = new("axe_t1", "Axe (T1)", "Tools", "🪓", null),
+        ["axe_t2"] = new("axe_t2", "Axe (T2)", "Tools", "🪓", null),
+        ["axe_t3"] = new("axe_t3", "Axe (T3)", "Tools", "🪓", null),
+        ["axe_t4"] = new("axe_t4", "Axe (T4)", "Tools", "🪓", null),
+
+        ["saw_t1"] = new("saw_t1", "Saw (T1)", "Tools", "🪚", null),
+        ["saw_t2"] = new("saw_t2", "Saw (T2)", "Tools", "🪚", null),
+        ["saw_t3"] = new("saw_t3", "Saw (T3)", "Tools", "🪚", null),
+        ["saw_t4"] = new("saw_t4", "Saw (T4)", "Tools", "🪚", null),
+
+        ["pickaxe_t1"] = new("pickaxe_t1", "Pickaxe (T1)", "Tools", "⛏️", null),
+        ["pickaxe_t2"] = new("pickaxe_t2", "Pickaxe (T2)", "Tools", "⛏️", null),
+        ["pickaxe_t3"] = new("pickaxe_t3", "Pickaxe (T3)", "Tools", "⛏️", null),
+        ["pickaxe_t4"] = new("pickaxe_t4", "Pickaxe (T4)", "Tools", "⛏️", null),
     };
 
     public static bool TryGet(string id, out ItemMeta meta) => _byId.TryGetValue(id, out meta);
