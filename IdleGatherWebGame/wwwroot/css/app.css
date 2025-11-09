@@ -71,6 +71,12 @@ code {
     --muted: #a8b0c0;
     --accent: #7cb342;
 }
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* Prevent page scroll */
+}
 * {
     box-sizing: border-box;
 }
@@ -116,7 +122,38 @@ code {
     grid-template-columns: 260px 1fr 320px;
     gap: 12px;
     padding: 12px;
+    height: calc(100vh - 60px); /* Full height minus topbar */
+    overflow: hidden; /* Prevent outer scroll */
 }
+.left, .main, .right {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+}
+    .left::-webkit-scrollbar,
+    .main::-webkit-scrollbar,
+    .right::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .left::-webkit-scrollbar-track,
+    .main::-webkit-scrollbar-track,
+    .right::-webkit-scrollbar-track {
+        background: var(--bg);
+    }
+
+    .left::-webkit-scrollbar-thumb,
+    .main::-webkit-scrollbar-thumb,
+    .right::-webkit-scrollbar-thumb {
+        background: var(--line);
+        border-radius: 4px;
+    }
+
+        .left::-webkit-scrollbar-thumb:hover,
+        .main::-webkit-scrollbar-thumb:hover,
+        .right::-webkit-scrollbar-thumb:hover {
+            background: #3a3b44;
+        }
 /* Cards/panels */
 .card {
     background: var(--panel);
