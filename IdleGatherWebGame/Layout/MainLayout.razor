@@ -307,6 +307,10 @@
             {
                 @MasteryArea()
             }
+            else if (leftTab == "Enchanting")
+            {
+                @EnchantingArea()
+            }
             else if (leftTab == "Casino")
             {
                 <div class="casino-tab">
@@ -990,7 +994,10 @@
     bool showSmelt = false;
     int smeltCount = 0; // 0 = infinite
     string smeltMsg = "";
-
+    RenderFragment EnchantingArea() => __builder =>
+    {
+        <h2>Enchanting</h2>
+    };
     RenderFragment MasteryArea() => __builder =>
     {
         <div class="card" style="margin-bottom:10px;">

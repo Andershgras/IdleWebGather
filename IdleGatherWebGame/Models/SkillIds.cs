@@ -10,4 +10,5 @@ public static class SkillIds
     public const string Smelting = "smelting";
     public const string Casino = "casino";
     public const string Mastery = "mastery";
+    public const string Enchanting = "enchanting";
 }

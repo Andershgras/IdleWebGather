@@ -14,7 +14,6 @@
             @TooltipFor("Clicking")
         }
     </div>
-
     <!-- Minigames -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Minigames"))" @onmouseout="@ClearHover">
         <NavButton Id="Minigames" Label="Minigames" Icon="🎮"
@@ -26,7 +25,6 @@
             @TooltipFor("Minigames")
         }
     </div>
-
     <!-- Woodcutting -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Woodcutting"))" @onmouseout="@ClearHover">
         <NavButton Id="Woodcutting" Label="Woodcutting" Icon="🌲"
@@ -38,7 +36,17 @@
             @TooltipFor("Woodcutting")
         }
     </div>
-
+    <!-- Enchanting -->
+    <div class="menu-with-tip" @onmouseover="@(() => Hover("Enchanting"))" @onmouseout="@ClearHover">
+        <NavButton Id="Enchanting" Label="Enchanting" Icon="✨"
+                   Active="@(Current == "Enchanting")"
+                   Level="@GS.Enchanting.Level" Xp="@GS.Enchanting.Xp" XpForNextLevel="@GS.Enchanting.XpForNextLevel"
+                   OnChange="OnChange" />
+        @if (hoveredId == "Enchanting")
+        {
+            @TooltipFor("Enchanting")
+        }
+    </div>
     <!-- Crafting -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Crafting"))" @onmouseout="@ClearHover">
         <NavButton Id="Crafting" Label="Crafting" Icon="🪵"
@@ -50,7 +58,6 @@
             @TooltipFor("Crafting")
         }
     </div>
-
     <!-- Mining -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Mining"))" @onmouseout="@ClearHover">
         <NavButton Id="Mining" Label="Mining" Icon="⛏️"
@@ -62,7 +69,6 @@
             @TooltipFor("Mining")
         }
     </div>
-
     <!-- Smelting -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Smelting"))" @onmouseout="@ClearHover">
         <NavButton Id="Smelting" Label="Smelting" Icon="🔥"
@@ -74,7 +80,6 @@
             @TooltipFor("Smelting")
         }
     </div>
-
     <!-- Casino -->
     <div class="menu-with-tip" @onmouseover="@(() => Hover("Casino"))" @onmouseout="@ClearHover">
         <NavButton Id="Casino" Label="Casino" Icon="🎰"
