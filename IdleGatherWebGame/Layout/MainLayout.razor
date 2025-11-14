@@ -367,13 +367,32 @@
             @* Only one of these blocks renders at a time *@
             @if (rightTab == TabInventory)
             {
-                @* INVENTORY (your new grid version) *@
+                @* INVENTORY *@
                 @if (!GetInventoryGroups().Any())
                 {
                     <p class="small">You haven’t obtained any items yet.</p>
                 }
                 else
                 {
+                    @* Fixed hover-info box sitting above the inventory, over "Currencies" *@
+                    <div class="inv-hoverbox inv-pop">
+                        @if (hoverItemId is not null && ItemRegistry.TryGet(hoverItemId, out var hoverMeta))
+                        {
+                            <div class="tip-name">@hoverMeta.Name</div>
+                            <div class="tip-cat">@hoverMeta.Category</div>
+                            <div class="tip-amt">Owned: @Math.Floor(hoverItemAmount)</div>
+
+                            @if (GS.TryGetSellPrice(hoverItemId, out var hoverPrice))
+                            {
+                                <div class="tip-amt">Sell Price: @hoverPrice Coins</div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="tip-cat">Hover an item below to see its details.</div>
+                        }
+                    </div>
+
                     @foreach (var group in GetInventoryGroups())
                     {
                         <div class="inv-section">
@@ -387,8 +406,11 @@
                                     var hasPrice = GS.TryGetSellPrice(id, out var unitPrice);
 
                                     <div class="inv-item"
-                                        @onmousedown:stopPropagation="true"
-                                        @onclick="@(() => OpenItemPanel(id, amt))">
+                                         @onmousedown:stopPropagation="true"
+                                         @onclick="@(() => OpenItemPanel(id, amt))"
+                                         @onmouseover="@(() => HoverInventoryItem(id, amt))"
+                                         @onmouseout="@ClearInventoryHover">
+
                                         @if (ItemRegistry.TryGet(id, out var meta))
                                         {
                                             if (LooksLikeImage(meta.Icon))
@@ -405,23 +427,9 @@
                                             <div class="inv-emoji">❔</div>
                                         }
 
-
                                         <span class="inv-badge">@FormatQty(amt)</span>
-
-                                        <div class="inv-tip inv-pop">
-                                            <div class="tip-name">@item.Meta.Name</div>
-                                            <div class="tip-cat">@group.Category</div>
-                                            <div class="tip-amt">Owned: @Math.Floor(amt)</div>
-                                            @if (hasPrice)
-                                            {
-                                                <div class="tip-amt">Sell Price: @unitPrice</div>
-                                            }
-                                        </div>
                                     </div>
-
-
                                 }
-
                             </div>
 
                             @if (selectedItemId is not null && group.Items.Any(i => i.Meta.Id == selectedItemId))
@@ -432,6 +440,7 @@
 
                                 <div class="sell-panel card" @onmousedown:stopPropagation="true">
                                     <div class="sell-title">@Math.Floor(SelectedItemOwned) @meta.Name</div>
+
                                     @if (isTool)
                                     {
                                         <div class="sell-row">
@@ -442,6 +451,7 @@
                                             </button>
                                         </div>
                                     }
+
                                     <div class="sell-row">
                                         <input class="input small" type="number" min="1" max="@MaxSellAll"
                                                @bind="sellAmount" @bind:event="oninput" />
@@ -664,7 +674,19 @@
     int sellAmount = 1;
     double SelectedItemOwned => selectedItemId is null ? 0 : GS.GetAmount(selectedItemId);
     int MaxSellAll => (int)Math.Floor(SelectedItemOwned);
+    // inventory hover state (for fixed hover box)
+    string? hoverItemId = null;
+    double hoverItemAmount;
+    private void HoverInventoryItem(string id, double amount)
+    {
+        hoverItemId = id;
+        hoverItemAmount = amount;
+    }
 
+    private void ClearInventoryHover()
+    {
+        hoverItemId = null;
+    }
     private List<InvGroup> GetInventoryGroups()
     {
         var byCat = new Dictionary<string, InvGroup>();
